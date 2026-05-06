@@ -1,196 +1,184 @@
-# SkillSwap – Full Stack Skill Exchange Platform
+SkillSwap
 
->  A modern full-stack web application where users can exchange services using time credits or cash — inspired by real-world platforms like freelancing + barter systems.
+SkillSwap is a full-stack AI-powered digital marketplace designed to connect users with skilled professionals and service providers through a modern, secure, and user-friendly platform.
 
----
+The platform simplifies the complete service lifecycle including:
 
-## Overview
+Service Discovery
+Provider Search
+Booking Management
+Wallet System
+Online Payments
+Real-Time Chat
+Reviews & Ratings
+AI Assistance
+Role-Based Dashboards
 
-SkillSwap allows people to **connect, share skills, and earn** — without always relying on money.
-Users can either request services or provide them and get paid in **credits, cash, or both**.
+This project was developed as part of the B.Tech CSE (AI Specialization) program.
 
----
+🚀 Features
+👤 User Module
 
-## 🎯 Key Features
+Users can:
 
-### 👤 User Panel
+Register & Login securely
+Browse available services
+Search providers
+Book appointments
+Chat with providers
+Maintain wallet balance
+Track booking history
+Rate & review services
+Manage personal profile
+🧑‍💼 Provider Module
 
-* 🔍 Browse available services
-* 📅 Book services easily
-* 💬 Chat with providers
-* 💰 Manage wallet (credits + transactions)
-* 📦 View booking history
+Providers can:
 
-### 🧑‍💼 Provider Panel
+Create professional profiles
+Add & manage services
+Set pricing & availability
+Accept or reject bookings
+Track earnings
+Receive payments
+Communicate with customers
+Build trust through ratings
+🛡️ Admin Module
 
-* ➕ Create & manage services
-* 📊 Track bookings
-* 💵 View earnings
-* 💬 Real-time chat with users
+Admin functionalities include:
 
-### 🔐 Authentication
+User verification
+Provider verification
+Complaint handling
+Booking monitoring
+Service moderation
+Payment logs
+Analytics dashboard
+🛠️ Tech Stack
+Frontend
+React.js
+Material UI
+JavaScript (ES6+)
+Axios
+React Router DOM
+Backend
+Node.js
+Express.js
+JWT Authentication
+Database
+PostgreSQL
+Prisma ORM
+🧠 AI Features
 
-* Secure login & registration
-* Role-based access (User / Provider)
-* Protected routes using JWT
+SkillSwap includes AI-powered functionalities to improve user experience:
 
----
+Smart assistance
+Better provider recommendations
+Automated support interactions
+Enhanced user engagement
+🏗️ System Architecture
 
-## 🛠️ Tech Stack
+SkillSwap follows a Three-Tier Architecture:
 
-### 🎨 Frontend
+1️⃣ Presentation Layer
 
-* ⚛️ React.js
-* 🎯 React Router
-* 🎨 Material UI (MUI)
-* 📡 Axios
+Frontend interface built using React.js
 
-### ⚙️ Backend
+2️⃣ Application Layer
 
-* 🟢 Node.js
-* 🚀 Express.js
-* 🧠 Prisma ORM
+Backend APIs using Node.js + Express.js
 
-### 🗄️ Database
+3️⃣ Data Layer
 
-* PostgreSQL / MySQL
+PostgreSQL database with Prisma ORM
 
----
+This architecture improves:
 
-## 📂 Project Structure
+Scalability
+Security
+Maintainability
+Performance
+🔐 Authentication
 
-```
+JWT Authentication is used for:
+
+Secure Login
+Session Management
+Route Protection
+User Verification
+
+Example:
+
+const token = jwt.sign(
+  { userId: user.id },
+  process.env.JWT_SECRET,
+  { expiresIn: "7d" }
+);
+📂 Project Structure
 SkillSwap/
 │
 ├── frontend/
-│   ├── src/
-│   │   ├── components/     # UI components
-│   │   ├── pages/          # Pages (User/Provider/Auth)
-│   │   ├── routes/         # Protected routes
-│   │   ├── services/       # API calls (Axios)
-│   │   ├── context/        # Auth state
-│   │   └── App.js
+│   ├── components/
+│   ├── pages/
+│   ├── routes/
+│   ├── assets/
+│   └── services/
 │
 ├── backend/
-│   ├── controllers/        # Business logic
-│   ├── routes/             # API routes
-│   ├── models/             # DB models
-│   ├── prisma/             # ORM config
-│   └── server.js
-```
-
----
-
-## 🔄 API Integration
-
-### Auth APIs
-
-```
-POST /api/auth/register  
-POST /api/auth/login  
-```
-
-### Example Request
-
-```json
-{
-  "email": "user@gmail.com",
-  "password": "123456"
-}
-```
-
-### Response
-
-```json
-{
-  "token": "JWT_TOKEN",
-  "user": {
-    "id": 1,
-    "name": "ABCD",
-    "role": "user"
-  }
-}
-```
-
----
-
-## 🔐 Authentication Flow
-
-1. User registers → stored in database
-2. Login → backend returns JWT token
-3. Token stored in `localStorage`
-4. Token attached to every API request
-5. Protected routes allow only logged-in users
-
----
-
-## ▶️ Run Project Locally
-
-### 1️⃣ Clone Repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/SkillSwap.git
-cd SkillSwap
-```
-
----
-
-### 2️⃣ Backend Setup
-
-```bash
-cd backend
-npm install
-npx prisma generate
-npx prisma migrate dev
-npm run dev
-```
-
-Backend runs on:
-👉 http://localhost:5000
-
----
-
-### 3️⃣ Frontend Setup
-
-```bash
+│   ├── controllers/
+│   ├── routes/
+│   ├── middleware/
+│   ├── prisma/
+│   └── config/
+│
+└── README.md
+⚡ Installation Guide
+1️⃣ Clone Repository
+git clone https://github.com/your-username/SkillSwap.git
+2️⃣ Frontend Setup
 cd frontend
 npm install
 npm start
-```
+3️⃣ Backend Setup
+cd backend
+npm install
+npm run dev
+4️⃣ Configure Environment Variables
 
-Frontend runs on:
-👉 http://localhost:3000
+Create .env file inside backend folder:
 
----
+DATABASE_URL=your_database_url
+JWT_SECRET=your_secret_key
+PORT=5000
+💳 Core Functionalities
+Secure Authentication
+Booking Automation
+Digital Wallet
+Payment Integration
+Real-Time Communication
+Role-Based Routing
+Protected Routes
+Feedback & Reviews
+📸 UI Highlights
+Premium Modern UI
+Responsive Design
+Glassmorphism Effects
+Interactive Dashboards
+User-Friendly Navigation
+Professional Service Cards
+📈 Future Enhancements
+Machine Learning Recommendations
+Live Notifications
+Video Consultation
+Mobile App Version
+Multi-language Support
+AI Chatbot Improvements
+🎯 Advantages
 
-## 🧪 How to Test
-
-1. Register as new user
-2. Login
-3. Redirect based on role:
-
-   * User → `/user/dashboard`
-   * Provider → `/provider/dashboard`
-4. Try booking / creating services
-
----
-
-## 🎨 UI Highlights
-
-* ✨ Glassmorphism design
-* 🎀 Pastel aesthetic UI
-* 📱 Fully responsive
-* ⚡ Smooth navigation
-
----
-
-## 🔮 Future Improvements
-
-* 💳 Payment integration (Stripe/Razorpay)
-* ⭐ Ratings & reviews
-* 🔔 Notifications system
-* 🧑‍💼 Admin dashboard
-* 🌍 Deployment (Vercel + Render)
-
----
-
+✅ Secure Login System
+✅ Online Payments
+✅ Real-Time Chat
+✅ Digital Wallet
+✅ Provider Discovery
+✅ Booking Automation
+✅ Scalable Backend
+✅ Efficient Database Handling
