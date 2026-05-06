@@ -210,7 +210,10 @@ PORT=5000
 ✅ Booking Automation  
 ✅ Real-Time Communication  
 ✅ Digital Wallet  
-
----
 ✅ AI Features  
 ✅ Scalable Architecture  
+
+---
+
+<img width="1894" height="866" alt="image" src="https://github.com/user-attachments/assets/36bb6dbd-16e6-438f-9515-5140cb062918" />
+
