@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -8,6 +8,7 @@ import {
   Avatar,
   Grid,
   Stack,
+  CircularProgress,
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
@@ -18,43 +19,52 @@ import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import UserSidebar, { sidebarWidth } from "../../components/layout/UserSidebar";
 import UserTopbar from "../../components/layout/UserTopbar";
+import axiosInstance from "../../services/axiosInstance";
 
 export default function ServiceDetails() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const service = {
-    id,
-    title: "AC Repair",
-    category: "Repair",
-    description:
-      "Professional AC repair and maintenance service for homes and small offices. Includes quick diagnosis, gas check, filter cleaning, and common issue fixing with reliable support.",
-    price: "₹800",
-    credits: "75 Credits",
-    provider: "Rohit Sharma",
-    rating: "4.8",
-    location: "Shimla, Himachal Pradesh",
-    availability: "Tomorrow, 10:00 AM - 6:00 PM",
-    experience: "5+ years experience",
-  };
+  const [service, setService] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const reviews = [
-    {
-      name: "Neha",
-      text: "Very professional and quick service. My AC started working perfectly again.",
-      rating: "5.0",
-    },
-    {
-      name: "Aman",
-      text: "On time and polite. Explained the issue clearly before fixing it.",
-      rating: "4.7",
-    },
-    {
-      name: "Riya",
-      text: "Good experience overall and fair pricing.",
-      rating: "4.8",
-    },
-  ];
+  useEffect(() => {
+    const fetchService = async () => {
+      try {
+        const res = await axiosInstance.get(`/services/${id}`);
+        setService(res.data.service);
+
+        // Fetch reviews for this provider
+        const reviewRes = await axiosInstance.get(
+          `/reviews/provider/${res.data.service.providerId}`
+        );
+        setReviews(reviewRes.data.reviews || []);
+      } catch (err) {
+        console.error("Failed to fetch service", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchService();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!service) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+        <Typography>Service not found.</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -114,9 +124,18 @@ export default function ServiceDetails() {
               </Typography>
 
               <Stack direction="row" spacing={1.2} flexWrap="wrap" useFlexGap sx={{ mb: 2.5 }}>
-                <Chip label={service.category} sx={{ bgcolor: "#F3ECF6", fontWeight: 700 }} />
-                <Chip label={service.price} sx={{ bgcolor: "#FFF3E8", fontWeight: 700 }} />
-                <Chip label={service.credits} sx={{ bgcolor: "#E9F5EC", fontWeight: 700 }} />
+                {service.category && (
+                  <Chip label={service.category} sx={{ bgcolor: "#F3ECF6", fontWeight: 700 }} />
+                )}
+                {service.cashRate && (
+                  <Chip label={`₹${service.cashRate}`} sx={{ bgcolor: "#FFF3E8", fontWeight: 700 }} />
+                )}
+                {service.creditRate && (
+                  <Chip label={`${service.creditRate} Credits`} sx={{ bgcolor: "#E9F5EC", fontWeight: 700 }} />
+                )}
+                {service.tags?.map((tag, i) => (
+                  <Chip key={i} label={tag} sx={{ bgcolor: "#F0EAFF", fontWeight: 600 }} />
+                ))}
               </Stack>
 
               <Typography
@@ -141,51 +160,13 @@ export default function ServiceDetails() {
                       border: "1px solid #EEE6F5",
                     }}
                   >
-                    <Typography sx={{ color: "#8A839C", mb: 0.6 }}>Availability</Typography>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <CalendarMonthRoundedIcon sx={{ color: "#8A7FA7" }} />
-                      <Typography sx={{ fontWeight: 700, color: "#322B49" }}>
-                        {service.availability}
-                      </Typography>
-                    </Box>
-                  </Paper>
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 2.2,
-                      borderRadius: "22px",
-                      bgcolor: "#F9F7FC",
-                      border: "1px solid #EEE6F5",
-                    }}
-                  >
-                    <Typography sx={{ color: "#8A839C", mb: 0.6 }}>Location</Typography>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <LocationOnRoundedIcon sx={{ color: "#8A7FA7" }} />
-                      <Typography sx={{ fontWeight: 700, color: "#322B49" }}>
-                        {service.location}
-                      </Typography>
-                    </Box>
-                  </Paper>
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 2.2,
-                      borderRadius: "22px",
-                      bgcolor: "#F9F7FC",
-                      border: "1px solid #EEE6F5",
-                    }}
-                  >
                     <Typography sx={{ color: "#8A839C", mb: 0.6 }}>Provider Rating</Typography>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <StarRoundedIcon sx={{ color: "#F5B301" }} />
                       <Typography sx={{ fontWeight: 700, color: "#322B49" }}>
-                        {service.rating} / 5.0
+                        {reviews.length > 0
+                          ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+                          : "No reviews yet"} / 5.0
                       </Typography>
                     </Box>
                   </Paper>
@@ -201,9 +182,49 @@ export default function ServiceDetails() {
                       border: "1px solid #EEE6F5",
                     }}
                   >
-                    <Typography sx={{ color: "#8A839C", mb: 0.6 }}>Experience</Typography>
+                    <Typography sx={{ color: "#8A839C", mb: 0.6 }}>Provider</Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <LocationOnRoundedIcon sx={{ color: "#8A7FA7" }} />
+                      <Typography sx={{ fontWeight: 700, color: "#322B49" }}>
+                        {service.provider?.name || "Unknown"}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2.2,
+                      borderRadius: "22px",
+                      bgcolor: "#F9F7FC",
+                      border: "1px solid #EEE6F5",
+                    }}
+                  >
+                    <Typography sx={{ color: "#8A839C", mb: 0.6 }}>Total Reviews</Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <CalendarMonthRoundedIcon sx={{ color: "#8A7FA7" }} />
+                      <Typography sx={{ fontWeight: 700, color: "#322B49" }}>
+                        {reviews.length} review{reviews.length !== 1 ? "s" : ""}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2.2,
+                      borderRadius: "22px",
+                      bgcolor: "#F9F7FC",
+                      border: "1px solid #EEE6F5",
+                    }}
+                  >
+                    <Typography sx={{ color: "#8A839C", mb: 0.6 }}>Credit Balance</Typography>
                     <Typography sx={{ fontWeight: 700, color: "#322B49" }}>
-                      {service.experience}
+                      {service.provider?.creditBalance || 0} credits
                     </Typography>
                   </Paper>
                 </Grid>
@@ -230,43 +251,47 @@ export default function ServiceDetails() {
                 Reviews
               </Typography>
 
-              <Stack spacing={2}>
-                {reviews.map((review, index) => (
-                  <Paper
-                    key={index}
-                    elevation={0}
-                    sx={{
-                      p: 2.4,
-                      borderRadius: "22px",
-                      bgcolor: "#F9F7FC",
-                      border: "1px solid #EEE6F5",
-                    }}
-                  >
-                    <Box
+              {reviews.length === 0 ? (
+                <Typography sx={{ color: "#8A839C" }}>No reviews yet for this provider.</Typography>
+              ) : (
+                <Stack spacing={2}>
+                  {reviews.map((review, index) => (
+                    <Paper
+                      key={index}
+                      elevation={0}
                       sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 1,
-                        alignItems: "center",
-                        mb: 1,
-                        flexWrap: "wrap",
+                        p: 2.4,
+                        borderRadius: "22px",
+                        bgcolor: "#F9F7FC",
+                        border: "1px solid #EEE6F5",
                       }}
                     >
-                      <Typography sx={{ fontWeight: 800, color: "#3D3757" }}>
-                        {review.name}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 1,
+                          alignItems: "center",
+                          mb: 1,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <Typography sx={{ fontWeight: 800, color: "#3D3757" }}>
+                          {review.reviewer?.name || "Anonymous"}
+                        </Typography>
+                        <Chip
+                          icon={<StarRoundedIcon sx={{ color: "#F5B301 !important" }} />}
+                          label={review.rating}
+                          sx={{ bgcolor: "#FFF7D6", fontWeight: 700 }}
+                        />
+                      </Box>
+                      <Typography sx={{ color: "#6B6881", lineHeight: 1.8 }}>
+                        {review.comment || "No comment provided."}
                       </Typography>
-                      <Chip
-                        icon={<StarRoundedIcon sx={{ color: "#F5B301 !important" }} />}
-                        label={review.rating}
-                        sx={{ bgcolor: "#FFF7D6", fontWeight: 700 }}
-                      />
-                    </Box>
-                    <Typography sx={{ color: "#6B6881", lineHeight: 1.8 }}>
-                      {review.text}
-                    </Typography>
-                  </Paper>
-                ))}
-              </Stack>
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
             </Paper>
           </Grid>
 
@@ -304,12 +329,12 @@ export default function ServiceDetails() {
                     fontSize: "1.4rem",
                   }}
                 >
-                  {service.provider.charAt(0)}
+                  {service.provider?.name?.charAt(0) || "P"}
                 </Avatar>
 
                 <Box>
                   <Typography sx={{ fontWeight: 800, color: "#2D2A45", fontSize: "1.1rem" }}>
-                    {service.provider}
+                    {service.provider?.name || "Provider"}
                   </Typography>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 0.7, mt: 0.4 }}>
                     <VerifiedRoundedIcon sx={{ color: "#33A852", fontSize: 18 }} />
@@ -331,19 +356,23 @@ export default function ServiceDetails() {
                 }}
               >
                 <Typography sx={{ color: "#8A839C", mb: 0.7 }}>Service Charges</Typography>
-                <Typography sx={{ fontWeight: 800, fontSize: "1.25rem", color: "#3D3757" }}>
-                  {service.price}
-                </Typography>
-                <Typography sx={{ color: "#6E6A83", mt: 0.4 }}>
-                  or {service.credits}
-                </Typography>
+                {service.cashRate && (
+                  <Typography sx={{ fontWeight: 800, fontSize: "1.25rem", color: "#3D3757" }}>
+                    ₹{service.cashRate}
+                  </Typography>
+                )}
+                {service.creditRate && (
+                  <Typography sx={{ color: "#6E6A83", mt: 0.4 }}>
+                    or {service.creditRate} Credits
+                  </Typography>
+                )}
               </Paper>
 
               <Button
                 fullWidth
                 variant="contained"
                 endIcon={<ArrowForwardRoundedIcon />}
-                onClick={() => navigate("/book-service")}
+                onClick={() => navigate(`/user/bookings`)}
                 sx={{
                   bgcolor: "#8D6FE8",
                   color: "#fff",
@@ -364,7 +393,7 @@ export default function ServiceDetails() {
               <Button
                 fullWidth
                 variant="outlined"
-                onClick={() => navigate("/chat")}
+                onClick={() => navigate("/user/chat")}
                 sx={{
                   borderColor: "#D7CEE8",
                   color: "#514A67",

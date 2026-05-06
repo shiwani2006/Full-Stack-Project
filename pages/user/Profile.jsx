@@ -1,28 +1,24 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import axiosInstance from "../../services/axiosInstance";
 
 const Profile = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
   const defaultUser = {
-    name: "Shivii",
-    email: "shiviidhalari@gmail.com",
-    role: "User",
+    name: "User",
+    email: "user@example.com",
+    role: "user",
     phone: "",
     city: "",
     bio: "I love exploring useful local services around my area.",
     profileImage: "",
-    credits: 12,
+    creditBalance: 0,
   };
 
   const getStoredUser = () => {
-    return (
-      JSON.parse(localStorage.getItem("currentUser")) ||
-      JSON.parse(localStorage.getItem("loggedInUser")) ||
-      JSON.parse(sessionStorage.getItem("currentUser")) ||
-      defaultUser
-    );
+    return JSON.parse(localStorage.getItem("user")) || defaultUser;
   };
 
   const [userData, setUserData] = useState(getStoredUser());
@@ -30,19 +26,25 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    const latestUser = getStoredUser();
-    setUserData(latestUser);
-    setFormData(latestUser);
+    // Fetch fresh profile from backend
+    axiosInstance.get("/users/me")
+      .then((res) => {
+        const freshUser = res.data.user;
+        localStorage.setItem("user", JSON.stringify(freshUser));
+        setUserData(freshUser);
+        setFormData(freshUser);
+      })
+      .catch(() => {
+        // fallback to localStorage if API fails
+        const latestUser = getStoredUser();
+        setUserData(latestUser);
+        setFormData(latestUser);
+      });
   }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-
-    const updated = {
-      ...formData,
-      [name]: value,
-    };
-
+    const updated = { ...formData, [name]: value };
     setFormData(updated);
     setUserData(updated);
   };
@@ -63,10 +65,7 @@ const Profile = () => {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      const updated = {
-        ...formData,
-        profileImage: reader.result,
-      };
+      const updated = { ...formData, profileImage: reader.result };
       setFormData(updated);
       setUserData(updated);
     };
@@ -74,26 +73,26 @@ const Profile = () => {
   };
 
   const handleRemovePhoto = () => {
-    const updated = {
-      ...formData,
-      profileImage: "",
-    };
+    const updated = { ...formData, profileImage: "" };
     setFormData(updated);
     setUserData(updated);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleSave = () => {
-    localStorage.setItem("currentUser", JSON.stringify(formData));
-    localStorage.setItem("loggedInUser", JSON.stringify(formData));
-    sessionStorage.setItem("currentUser", JSON.stringify(formData));
-
-    setUserData(formData);
-    setIsEditing(false);
-    alert("Profile saved successfully");
+  const handleSave = async () => {
+    try {
+      const res = await axiosInstance.patch("/users/me", {
+        name: formData.name,
+        profileImage: formData.profileImage,
+      });
+      const updatedUser = res.data.user;
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUserData(updatedUser);
+      setIsEditing(false);
+      alert("Profile saved successfully");
+    } catch (err) {
+      alert("Failed to save profile. Please try again.");
+    }
   };
 
   const handleCancel = () => {
@@ -104,9 +103,8 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("currentUser");
-    localStorage.removeItem("loggedInUser");
-    sessionStorage.removeItem("currentUser");
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
     navigate("/login");
   };
 
@@ -254,7 +252,7 @@ const Profile = () => {
               <div style={styles.miniStatsGrid}>
                 <div style={styles.miniStatCard}>
                   <p style={styles.miniStatLabel}>Credits</p>
-                  <h4 style={styles.miniStatValue}>{userData.credits || 0}</h4>
+                  <h4 style={styles.miniStatValue}>{userData.creditBalance || 0}</h4>
                 </div>
                 <div style={styles.miniStatCard}>
                   <p style={styles.miniStatLabel}>City</p>
@@ -355,6 +353,7 @@ const Profile = () => {
                         onChange={handleInputChange}
                         style={styles.input}
                         placeholder="Enter your email"
+                        disabled
                       />
                     </div>
 

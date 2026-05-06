@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -15,26 +15,33 @@ import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import UserSidebar, { sidebarWidth } from "../../components/layout/UserSidebar";
 import UserTopbar from "../../components/layout/UserTopbar";
+import axiosInstance from "../../services/axiosInstance";
 
 export default function UserProfile() {
   const storedUser = JSON.parse(localStorage.getItem("user")) || {
-    name: "Shiwani",
-    email: "shiwani@gmail.com",
+    name: "User",
+    email: "user@example.com",
     role: "user",
+    creditBalance: 0,
     bio: "I love exchanging useful local services and discovering trustworthy providers around my neighbourhood.",
   };
 
-  const [userData, setUserData] = useState({
-    name: storedUser.name || "Shiwani",
-    email: storedUser.email || "shiwani@gmail.com",
-    role: storedUser.role || "user",
-    bio:
-      storedUser.bio ||
-      "I love exchanging useful local services and discovering trustworthy providers around my neighbourhood.",
-  });
-
+  const [userData, setUserData] = useState(storedUser);
   const [editMode, setEditMode] = useState(false);
-  const [tempData, setTempData] = useState(userData);
+  const [tempData, setTempData] = useState(storedUser);
+
+  useEffect(() => {
+    axiosInstance.get("/users/me")
+      .then((res) => {
+        const fresh = res.data.user;
+        localStorage.setItem("user", JSON.stringify(fresh));
+        setUserData(fresh);
+        setTempData(fresh);
+      })
+      .catch(() => {
+        // fallback to localStorage
+      });
+  }, []);
 
   const handleEditClick = () => {
     setTempData(userData);
@@ -48,21 +55,21 @@ export default function UserProfile() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setTempData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setTempData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSaveClick = () => {
-    const updatedUser = {
-      ...storedUser,
-      ...tempData,
-    };
-
-    setUserData(tempData);
-    localStorage.setItem("user", JSON.stringify(updatedUser));
-    setEditMode(false);
+  const handleSaveClick = async () => {
+    try {
+      const res = await axiosInstance.patch("/users/me", {
+        name: tempData.name,
+      });
+      const updatedUser = res.data.user;
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUserData(updatedUser);
+      setEditMode(false);
+    } catch (err) {
+      alert("Failed to save profile. Please try again.");
+    }
   };
 
   return (
@@ -108,26 +115,19 @@ export default function UserProfile() {
                   boxShadow: "0 10px 24px rgba(140,110,190,0.16)",
                 }}
               >
-                {(userData.name || "S").charAt(0).toUpperCase()}
+                {(userData.name || "U").charAt(0).toUpperCase()}
               </Avatar>
 
-              <Typography
-                sx={{
-                  fontSize: "2rem",
-                  fontWeight: 900,
-                  color: "#54486E",
-                  mb: 1,
-                }}
-              >
-                {userData.name || "Shiwani"}
+              <Typography sx={{ fontSize: "2rem", fontWeight: 900, color: "#54486E", mb: 1 }}>
+                {userData.name || "User"}
               </Typography>
 
               <Typography sx={{ color: "#7B718F", mt: 1, fontSize: "1.05rem" }}>
-                {userData.email || "shiwani@gmail.com"}
+                {userData.email || "user@example.com"}
               </Typography>
 
               <Chip
-                label="User Account"
+                label={`${userData.role === "provider" ? "Provider" : "User"} Account`}
                 sx={{
                   mt: 3,
                   px: 1.2,
@@ -139,6 +139,21 @@ export default function UserProfile() {
                   fontSize: "0.95rem",
                 }}
               />
+
+              <Box sx={{ mt: 3, display: "flex", justifyContent: "center", gap: 2 }}>
+                <Box sx={{ textAlign: "center" }}>
+                  <Typography sx={{ fontWeight: 800, color: "#2B253A", fontSize: "1.3rem" }}>
+                    {userData.creditBalance || 0}
+                  </Typography>
+                  <Typography sx={{ color: "#8A839C", fontSize: "0.85rem" }}>Credits</Typography>
+                </Box>
+                <Box sx={{ textAlign: "center" }}>
+                  <Typography sx={{ fontWeight: 800, color: "#2B253A", fontSize: "1.3rem" }}>
+                    {userData.trustScore || 100}
+                  </Typography>
+                  <Typography sx={{ color: "#8A839C", fontSize: "0.85rem" }}>Trust Score</Typography>
+                </Box>
+              </Box>
             </Paper>
           </Grid>
 
@@ -162,13 +177,7 @@ export default function UserProfile() {
                   mb: 3,
                 }}
               >
-                <Typography
-                  sx={{
-                    fontSize: "1.9rem",
-                    fontWeight: 900,
-                    color: "#1F1A2D",
-                  }}
-                >
+                <Typography sx={{ fontSize: "1.9rem", fontWeight: 900, color: "#1F1A2D" }}>
                   Profile Details
                 </Typography>
 
@@ -234,38 +243,44 @@ export default function UserProfile() {
               {!editMode ? (
                 <Stack spacing={3}>
                   <Box>
-                    <Typography sx={{ color: "#8A839C", mb: 0.6, fontSize: "1rem" }}>
-                      Full Name
-                    </Typography>
+                    <Typography sx={{ color: "#8A839C", mb: 0.6, fontSize: "1rem" }}>Full Name</Typography>
                     <Typography sx={{ fontWeight: 800, color: "#2B253A", fontSize: "1.1rem" }}>
                       {userData.name}
                     </Typography>
                   </Box>
 
                   <Box>
-                    <Typography sx={{ color: "#8A839C", mb: 0.6, fontSize: "1rem" }}>
-                      Email
-                    </Typography>
+                    <Typography sx={{ color: "#8A839C", mb: 0.6, fontSize: "1rem" }}>Email</Typography>
                     <Typography sx={{ fontWeight: 800, color: "#2B253A", fontSize: "1.1rem" }}>
                       {userData.email}
                     </Typography>
                   </Box>
 
                   <Box>
-                    <Typography sx={{ color: "#8A839C", mb: 0.6, fontSize: "1rem" }}>
-                      Role
-                    </Typography>
+                    <Typography sx={{ color: "#8A839C", mb: 0.6, fontSize: "1rem" }}>Role</Typography>
                     <Typography sx={{ fontWeight: 800, color: "#2B253A", fontSize: "1.1rem" }}>
-                      {userData.role === "user" ? "User" : userData.role}
+                      {userData.role === "user" ? "User" : userData.role === "provider" ? "Provider" : userData.role}
                     </Typography>
                   </Box>
 
                   <Box>
-                    <Typography sx={{ color: "#8A839C", mb: 0.6, fontSize: "1rem" }}>
-                      Bio
+                    <Typography sx={{ color: "#8A839C", mb: 0.6, fontSize: "1rem" }}>Credit Balance</Typography>
+                    <Typography sx={{ fontWeight: 800, color: "#2B253A", fontSize: "1.1rem" }}>
+                      {userData.creditBalance || 0} credits
                     </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography sx={{ color: "#8A839C", mb: 0.6, fontSize: "1rem" }}>Trust Score</Typography>
+                    <Typography sx={{ fontWeight: 800, color: "#2B253A", fontSize: "1.1rem" }}>
+                      {userData.trustScore || 100} / 100
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography sx={{ color: "#8A839C", mb: 0.6, fontSize: "1rem" }}>Bio</Typography>
                     <Typography sx={{ color: "#5F5870", lineHeight: 1.9, fontSize: "1.05rem" }}>
-                      {userData.bio}
+                      {userData.bio || "No bio added yet."}
                     </Typography>
                   </Box>
                 </Stack>
@@ -275,7 +290,7 @@ export default function UserProfile() {
                     fullWidth
                     label="Full Name"
                     name="name"
-                    value={tempData.name}
+                    value={tempData.name || ""}
                     onChange={handleChange}
                   />
 
@@ -284,15 +299,15 @@ export default function UserProfile() {
                     label="Email"
                     name="email"
                     type="email"
-                    value={tempData.email}
-                    onChange={handleChange}
+                    value={tempData.email || ""}
+                    disabled
                   />
 
                   <TextField
                     fullWidth
                     label="Role"
                     name="role"
-                    value={tempData.role}
+                    value={tempData.role || ""}
                     disabled
                   />
 
@@ -302,7 +317,7 @@ export default function UserProfile() {
                     name="bio"
                     multiline
                     minRows={4}
-                    value={tempData.bio}
+                    value={tempData.bio || ""}
                     onChange={handleChange}
                   />
                 </Stack>

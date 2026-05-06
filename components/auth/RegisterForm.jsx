@@ -1,5 +1,5 @@
-import { registerUser } from "../../services/authService";
 import React, { useState } from "react";
+import { registerUser } from "../../services/authService";
 import {
   Box,
   Paper,
@@ -8,12 +8,10 @@ import {
   Button,
   Stack,
   InputAdornment,
-  MenuItem,
 } from "@mui/material";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
-import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
 import HowToRegRoundedIcon from "@mui/icons-material/HowToRegRounded";
 import { useNavigate, Link } from "react-router-dom";
 import logo from "../../assets/LOGO.png";
@@ -26,7 +24,6 @@ export default function RegisterForm() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "",
   });
 
   const [error, setError] = useState("");
@@ -39,14 +36,14 @@ export default function RegisterForm() {
     }));
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    const { name, email, password, confirmPassword, role } = formData;
+    const { name, email, password, confirmPassword } = formData;
 
-    if (!name || !email || !password || !confirmPassword || !role) {
+    if (!name || !email || !password || !confirmPassword) {
       setError("Please fill all fields.");
       return;
     }
@@ -56,40 +53,19 @@ export default function RegisterForm() {
       return;
     }
 
-    const existingUsers = JSON.parse(localStorage.getItem("registeredUsers")) || [];
-
-    const alreadyExists = existingUsers.find(
-      (user) => user.email.toLowerCase() === email.toLowerCase()
-    );
-
-    if (alreadyExists) {
-      setError("This email is already registered. Please login.");
-      return;
+    try {
+      await registerUser({ name, email, password, role: "user" });
+      setSuccess("Registration successful! Redirecting to login...");
+      setTimeout(() => {
+        navigate("/login");
+      }, 700);
+    } catch (err) {
+      if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else {
+        setError("Registration failed. Please try again.");
+      }
     }
-
-    const newUser = {
-      id: Date.now(),
-      name,
-      email,
-      password,
-      role,
-      bio:
-        role === "provider"
-          ? "I provide trusted services to people in my neighbourhood."
-          : "I love exploring useful local services around my area.",
-    };
-
-    localStorage.setItem(
-      "registeredUsers",
-      JSON.stringify([...existingUsers, newUser])
-    );
-
-    localStorage.setItem("user", JSON.stringify(newUser));
-    setSuccess("Registration successful!");
-
-    setTimeout(() => {
-      navigate("/dashboard");
-    }, 700);
   };
 
   return (
@@ -173,7 +149,7 @@ export default function RegisterForm() {
               mb: 3,
             }}
           >
-            Choose your role and create your account.
+            Join SkillSwap and start exchanging skills in your neighbourhood.
           </Typography>
         </Box>
 
@@ -209,26 +185,6 @@ export default function RegisterForm() {
                 ),
               }}
             />
-
-            <TextField
-              select
-              fullWidth
-              label="Choose Role"
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <BadgeRoundedIcon sx={{ color: "#8B7EA6" }} />
-                  </InputAdornment>
-                ),
-              }}
-            >
-              <MenuItem value="">Select Role</MenuItem>
-              <MenuItem value="user">User</MenuItem>
-              <MenuItem value="provider">Provider</MenuItem>
-            </TextField>
 
             <TextField
               fullWidth

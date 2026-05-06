@@ -10,6 +10,7 @@ import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
+import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 
 import logo from "../../assets/LOGO.png";
 
@@ -32,13 +33,18 @@ export default function ProviderSidebar() {
     },
     {
       label: "My Services",
-      path: "/provider/services",
+      path: "/provider/my-services",
       icon: <WorkRoundedIcon sx={{ fontSize: 22 }} />,
     },
     {
       label: "Create Service",
-      path: "/provider/create",
+      path: "/provider/create-service",
       icon: <AddCircleRoundedIcon sx={{ fontSize: 22 }} />,
+    },
+    {
+      label: "Browse Requests",
+      path: "/provider/browse-requests",
+      icon: <StorefrontRoundedIcon sx={{ fontSize: 22 }} />,
     },
     {
       label: "Provider Bookings",
@@ -47,7 +53,7 @@ export default function ProviderSidebar() {
     },
     {
       label: "Earnings",
-      path: "/provider/earnings",
+      path: "/provider/earning",
       icon: <AccountBalanceWalletRoundedIcon sx={{ fontSize: 22 }} />,
     },
     {
@@ -55,12 +61,16 @@ export default function ProviderSidebar() {
       path: "/provider/chat",
       icon: <ChatRoundedIcon sx={{ fontSize: 22 }} />,
     },
+    {
+      label: "Switch to User",
+      path: "/user/dashboard",
+      icon: <PersonRoundedIcon sx={{ fontSize: 22 }} />,
+    },
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem("currentProvider");
-    localStorage.removeItem("loggedInProvider");
-    sessionStorage.removeItem("currentProvider");
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
     navigate("/login");
   };
 
@@ -106,7 +116,6 @@ export default function ProviderSidebar() {
               bgcolor: "#fff",
             }}
           />
-
           <Box>
             <Typography
               sx={{
@@ -128,36 +137,40 @@ export default function ProviderSidebar() {
             const isActive = location.pathname === item.path;
 
             return (
-              <Button
-                key={item.path}
-                component={Link}
-                to={item.path}
-                startIcon={item.icon}
-                sx={{
-                  justifyContent: "flex-start",
-                  textTransform: "none",
-                  borderRadius: "20px",
-                  px: 1.8,
-                  py: 1.7,
-                  fontSize: "1rem",
-                  fontWeight: 800,
-                  color: isActive ? "#6E54D7" : "#5E5674",
-                  bgcolor: isActive ? "#EDE1FF" : "transparent",
-                  boxShadow: isActive
-                    ? "0 10px 20px rgba(141,111,232,0.10)"
-                    : "none",
-                  "& .MuiButton-startIcon": {
-                    mr: 1.2,
-                    color: isActive ? "#6E54D7" : "#6A627E",
-                  },
-                  "&:hover": {
-                    bgcolor: isActive ? "#E9DBFF" : "#F4EEFB",
-                  },
-                }}
-              >
-                {item.label}
-              </Button>
-            );
+  <Button
+    key={item.path}
+    component={Link}
+    to={item.path}
+    startIcon={item.icon}
+    sx={{
+      justifyContent: "flex-start",
+      textTransform: "none",
+      borderRadius: "20px",
+      px: 1.8,
+      py: 1.7,
+      fontSize: "1rem",
+      fontWeight: 800,
+      ...(item.label === "Switch to User"
+        ? {
+            color: "#7b4cff",
+            bgcolor: "#f0e8ff",
+            border: "1px solid #d4bfff",
+            mt: 1,
+            "& .MuiButton-startIcon": { mr: 1.2, color: "#7b4cff" },
+            "&:hover": { bgcolor: "#e6d9ff" },
+          }
+        : {
+            color: isActive ? "#6E54D7" : "#5E5674",
+            bgcolor: isActive ? "#EDE1FF" : "transparent",
+            boxShadow: isActive ? "0 10px 20px rgba(141,111,232,0.10)" : "none",
+            "& .MuiButton-startIcon": { mr: 1.2, color: isActive ? "#6E54D7" : "#6A627E" },
+            "&:hover": { bgcolor: isActive ? "#E9DBFF" : "#F4EEFB" },
+          }),
+    }}
+  >
+    {item.label}
+  </Button>
+);
           })}
         </Box>
       </Box>

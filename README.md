@@ -1,10 +1,10 @@
-# 💜 SkillSwap – Full Stack Skill Exchange Platform
+# SkillSwap – Full Stack Skill Exchange Platform
 
-> 🚀 A modern full-stack web application where users can exchange services using time credits or cash — inspired by real-world platforms like freelancing + barter systems.
+>  A modern full-stack web application where users can exchange services using time credits or cash — inspired by real-world platforms like freelancing + barter systems.
 
 ---
 
-## 🌟 Overview
+## Overview
 
 SkillSwap allows people to **connect, share skills, and earn** — without always relying on money.
 Users can either request services or provide them and get paid in **credits, cash, or both**.

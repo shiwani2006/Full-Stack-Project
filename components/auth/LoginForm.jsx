@@ -1,4 +1,3 @@
-import { loginUser } from "../../services/authService";
 import React, { useState } from "react";
 import {
   Box,
@@ -14,9 +13,12 @@ import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import { useNavigate, Link } from "react-router-dom";
 import logo from "../../assets/LOGO.png";
+import { loginUser } from "../../services/authService";
+import { useAuth } from "../../context/AuthContext";
 
 export default function LoginForm() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -32,7 +34,7 @@ export default function LoginForm() {
     }));
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -43,31 +45,16 @@ export default function LoginForm() {
       return;
     }
 
-    const existingUsers =
-      JSON.parse(localStorage.getItem("registeredUsers")) || [];
+    try {
+      const res = await loginUser({ email, password });
+      const loggedInUser = res.data.user;
+      const token = res.data.token;
 
-    const foundUser = existingUsers.find(
-      (user) =>
-        user.email.toLowerCase() === email.toLowerCase() &&
-        user.password === password
-    );
-
-    if (!foundUser) {
-      setError("Invalid email or password.");
-      return;
-    }
-
-    const loggedInUser = {
-      ...foundUser,
-      role: foundUser.role === "provider" ? "provider" : "user",
-    };
-
-    localStorage.setItem("user", JSON.stringify(loggedInUser));
-
-    if (loggedInUser.role === "provider") {
-      navigate("/provider/dashboard", { replace: true });
-    } else {
+      localStorage.setItem("token", token);
+      login(loggedInUser);
       navigate("/user/dashboard", { replace: true });
+    } catch (err) {
+      setError("Invalid email or password.");
     }
   };
 

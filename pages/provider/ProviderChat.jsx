@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
   Typography,
@@ -6,137 +6,128 @@ import {
   Avatar,
   Button,
   InputBase,
-  Chip,
-  Badge,
   Stack,
+  Chip,
 } from "@mui/material";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
+import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import MoreHorizRoundedIcon from "@mui/icons-material/MoreHorizRounded";
-import CallRoundedIcon from "@mui/icons-material/CallRounded";
-import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
 import ProviderSidebar, {
   providerSidebarWidth,
 } from "../../components/layout/ProviderSidebar";
 import ProviderTopbar from "../../components/layout/ProviderTopbar";
 import logo from "../../assets/LOGO.png";
 
+const providerAI = (msg) => {
+  const text = msg.toLowerCase();
+
+  if (/price|pricing|rate|charges/.test(text)) {
+    return `💰 Suggested Pricing:
+
+• Home Cleaning → ₹400–₹650
+• Deep Cleaning → ₹700–₹1200
+• Plumbing → ₹500–₹800
+• AC Repair → ₹700–₹950
+
+AI Tip: Keep normal pricing on weekdays and premium pricing on weekends.`;
+  }
+
+  if (/reply|respond|message/.test(text)) {
+    return `✍️ Suggested Reply:
+
+"Hello! Thank you for reaching out. Yes, I’m available and happy to help. Please share your preferred time and address details."`;
+  }
+
+  if (/demand|peak|forecast|booking/.test(text)) {
+    return `📈 Booking Forecast:
+
+• Peak time: 6 PM – 9 PM
+• Weekend demand: High
+• Most requested service: Cleaning
+• Best action: Open extra slots on Saturday and Sunday.`;
+  }
+
+  if (/complaint|issue|problem/.test(text)) {
+    return `🛟 Complaint Summary:
+
+Common issues:
+• Late arrival
+• Slow response
+• Service quality concern
+
+AI Advice:
+Send ETA updates before reaching the customer.`;
+  }
+
+  if (/upsell|offer|extra/.test(text)) {
+    return `🚀 Upsell Suggestion:
+
+Offer add-ons:
+• Deep Cleaning +₹200
+• Emergency Service +₹300
+• Monthly package discount
+
+Expected result: Better earnings and repeat customers.`;
+  }
+
+  return `🤖 Provider Copilot can help with:
+
+• Generate professional replies
+• Suggested pricing
+• Peak demand prediction
+• Complaint analysis
+• Upsell recommendations
+• Revenue insights`;
+};
+
 export default function ProviderChat() {
   const [search, setSearch] = useState("");
-  const [selectedChatId, setSelectedChatId] = useState(1);
   const [message, setMessage] = useState("");
+  const messagesEndRef = useRef(null);
 
-  const [conversations, setConversations] = useState([
+  const [messages, setMessages] = useState([
     {
       id: 1,
-      name: "Shiwani",
-      msg: "Can you confirm timing?",
-      active: true,
-      online: true,
-      unread: 2,
-      service: "Home Cleaning",
-      avatar: "S",
-      bg: "linear-gradient(135deg, #F3E8FF 0%, #F7EEFF 100%)",
-      messages: [
-        {
-          id: 1,
-          type: "user",
-          text: "Hello, is this service available tomorrow?",
-          time: "10:14 AM",
-        },
-        {
-          id: 2,
-          type: "provider",
-          text: "Yes, tomorrow at 10 AM is available.",
-          time: "10:16 AM",
-        },
-      ],
-    },
-    {
-      id: 2,
-      name: "Riya",
-      msg: "Is your service available today?",
-      active: false,
-      online: false,
-      unread: 1,
-      service: "Gardening Help",
-      avatar: "R",
-      bg: "linear-gradient(135deg, #EAF4FF 0%, #F1F8FF 100%)",
-      messages: [
-        {
-          id: 1,
-          type: "user",
-          text: "Is your gardening service available today?",
-          time: "9:20 AM",
-        },
-      ],
-    },
-    {
-      id: 3,
-      name: "Aman",
-      msg: "Thank you for the service.",
-      active: false,
-      online: false,
-      unread: 0,
-      service: "AC Repair",
-      avatar: "A",
-      bg: "linear-gradient(135deg, #FFF1F7 0%, #FFF7FB 100%)",
-      messages: [
-        {
-          id: 1,
-          type: "user",
-          text: "Thank you for the service.",
-          time: "Yesterday",
-        },
-      ],
+      type: "provider",
+      text:
+        "Hello 👋 I'm Provider Copilot.\nAsk me about pricing, replies, demand forecast, complaints, upsell ideas, or revenue insights.",
+      time: "Now",
     },
   ]);
 
-  const filteredConversations = useMemo(() => {
-    const q = search.toLowerCase();
-    return conversations.filter(
-      (item) =>
-        item.name.toLowerCase().includes(q) ||
-        item.msg.toLowerCase().includes(q) ||
-        item.service.toLowerCase().includes(q)
-    );
-  }, [search, conversations]);
-
-  const selectedChat =
-    conversations.find((item) => item.id === selectedChatId) || conversations[0];
-
-  const handleSelectChat = (id) => {
-    setSelectedChatId(id);
-    setConversations((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, unread: 0, active: true } : { ...item, active: false }
-      )
-    );
-  };
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSend = () => {
     if (!message.trim()) return;
 
-    const newMessage = {
+    const userText = message.trim();
+
+    const userMsg = {
       id: Date.now(),
-      type: "provider",
-      text: message,
+      type: "user",
+      text: userText,
       time: "Now",
     };
 
-    setConversations((prev) =>
-      prev.map((item) =>
-        item.id === selectedChatId
-          ? {
-              ...item,
-              msg: message,
-              messages: [...item.messages, newMessage],
-            }
-          : item
-      )
-    );
-
+    setMessages((prev) => [...prev, userMsg]);
     setMessage("");
+
+    setTimeout(() => {
+      const aiMsg = {
+        id: Date.now() + 1,
+        type: "provider",
+        text: providerAI(userText),
+        time: "Now",
+      };
+
+      setMessages((prev) => [...prev, aiMsg]);
+    }, 500);
+  };
+
+  const quickAsk = (text) => {
+    setMessage(text);
   };
 
   return (
@@ -144,11 +135,8 @@ export default function ProviderChat() {
       sx={{
         minHeight: "100vh",
         display: "flex",
-        bgcolor: "#F8F5FC",
-        backgroundImage: `
-          radial-gradient(circle at 0% 100%, rgba(224,236,255,0.82) 0, transparent 22%),
-          radial-gradient(circle at 100% 0%, rgba(255,214,231,0.72) 0, transparent 20%)
-        `,
+        background:
+          "linear-gradient(135deg, #fff7fb 0%, #f4edff 45%, #eef7ff 100%)",
       }}
     >
       <ProviderSidebar />
@@ -165,106 +153,92 @@ export default function ProviderChat() {
         <Box
           component="img"
           src={logo}
-          alt="bg-logo"
+          alt="logo"
           sx={{
             position: "absolute",
-            right: 30,
-            bottom: 30,
-            width: 300,
-            opacity: 0.035,
+            right: 40,
+            bottom: 40,
+            width: 320,
+            opacity: 0.04,
             pointerEvents: "none",
-            userSelect: "none",
-            zIndex: 0,
           }}
         />
 
         <Box sx={{ position: "relative", zIndex: 1 }}>
-          <ProviderTopbar title="Provider Chat" />
+          <ProviderTopbar title="Provider Copilot" />
 
           <Paper
             elevation={0}
             sx={{
-              p: { xs: 2, md: 2.5 },
+              p: 2.7,
               mb: 2.5,
-              borderRadius: "28px",
-              border: "1px solid #EAE2F3",
-              bgcolor: "rgba(255,255,255,0.78)",
-              boxShadow: "0 14px 28px rgba(160,130,190,0.06)",
+              borderRadius: "32px",
+              border: "1px solid rgba(234,226,243,0.95)",
+              background: "rgba(255,255,255,0.72)",
+              backdropFilter: "blur(18px)",
+              boxShadow: "0 24px 60px rgba(121,89,172,0.12)",
             }}
           >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: { xs: "flex-start", md: "center" },
-                flexDirection: { xs: "column", md: "row" },
-                gap: 2,
-              }}
-            >
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Avatar
+                sx={{
+                  width: 54,
+                  height: 54,
+                  background: "linear-gradient(135deg, #9B6BFF, #FF8FC7)",
+                  color: "#fff",
+                }}
+              >
+                <AutoAwesomeRoundedIcon />
+              </Avatar>
+
               <Box>
                 <Typography
                   sx={{
-                    fontSize: { xs: "1.6rem", md: "2rem" },
-                    fontWeight: 900,
-                    color: "#4E416D",
+                    fontSize: "2rem",
+                    fontWeight: 950,
+                    color: "#3D2A63",
                     lineHeight: 1.1,
                   }}
                 >
-                  Client Conversations
+                  Provider AI Assistant
                 </Typography>
-                <Typography
-                  sx={{
-                    color: "#7B7390",
-                    mt: 0.7,
-                    fontSize: "0.95rem",
-                  }}
-                >
-                  Reply quickly and manage your customer chats in one place
+
+                <Typography sx={{ color: "#8A7AA7", mt: 0.6 }}>
+                  Smart pricing • replies • demand forecast • complaint insights
                 </Typography>
               </Box>
-
-              <Chip
-                label={`${conversations.reduce((acc, cur) => acc + cur.unread, 0)} unread messages`}
-                sx={{
-                  bgcolor: "#F3E8FF",
-                  color: "#6B4FD3",
-                  fontWeight: 700,
-                  fontSize: "0.88rem",
-                }}
-              />
-            </Box>
+            </Stack>
           </Paper>
 
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "1fr", lg: "360px minmax(0, 1fr)" },
+              gridTemplateColumns: { xs: "1fr", lg: "360px minmax(0,1fr)" },
               gap: 3,
             }}
           >
-            {/* LEFT CONVERSATION PANEL */}
+            {/* LEFT PANEL */}
             <Paper
               elevation={0}
               sx={{
                 minHeight: 680,
-                borderRadius: "30px",
-                border: "1px solid #EAE2F3",
-                bgcolor: "rgba(255,255,255,0.78)",
+                borderRadius: "34px",
+                border: "1px solid rgba(234,226,243,0.95)",
+                background: "rgba(255,255,255,0.74)",
+                backdropFilter: "blur(18px)",
                 p: 2.4,
-                boxShadow: "0 14px 28px rgba(160,130,190,0.06)",
-                display: "flex",
-                flexDirection: "column",
+                boxShadow: "0 24px 60px rgba(121,89,172,0.12)",
               }}
             >
               <Typography
                 sx={{
-                  fontSize: "1.25rem",
-                  fontWeight: 900,
-                  color: "#4A456C",
+                  fontSize: "1.45rem",
+                  fontWeight: 950,
+                  color: "#3D2A63",
                   mb: 2,
                 }}
               >
-                User Messages
+                Conversations
               </Typography>
 
               <Paper
@@ -274,153 +248,82 @@ export default function ProviderChat() {
                   alignItems: "center",
                   gap: 1,
                   px: 1.8,
-                  py: 1.2,
+                  py: 1.25,
                   mb: 2.2,
-                  borderRadius: "18px",
-                  bgcolor: "#fff",
+                  borderRadius: "20px",
+                  background: "#fff",
                   border: "1px solid #E7DFF0",
                 }}
               >
-                <SearchRoundedIcon sx={{ color: "#8E88A3", fontSize: 20 }} />
+                <SearchRoundedIcon sx={{ color: "#9B8BB7", fontSize: 21 }} />
                 <InputBase
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search chats..."
-                  sx={{
-                    flex: 1,
-                    fontSize: "0.95rem",
-                    "& input::placeholder": {
-                      opacity: 1,
-                      color: "#A09AAC",
-                    },
-                  }}
+                  placeholder="Search AI chat..."
+                  sx={{ flex: 1, color: "#4E416D" }}
                 />
               </Paper>
 
-              <Stack spacing={1.5} sx={{ flex: 1, overflowY: "auto", pr: 0.5 }}>
-                {filteredConversations.map((item) => (
-                  <Paper
-                    key={item.id}
-                    elevation={0}
-                    onClick={() => handleSelectChat(item.id)}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: "26px",
+                  background:
+                    "linear-gradient(135deg, #F3E8FF 0%, #EAF4FF 100%)",
+                  border: "1px solid #E2D3FF",
+                  boxShadow: "0 18px 38px rgba(126,87,194,0.14)",
+                }}
+              >
+                <Stack direction="row" spacing={1.5}>
+                  <Avatar
                     sx={{
-                      p: 1.8,
-                      borderRadius: "22px",
-                      bgcolor: item.active ? item.bg : "#FAF8FD",
-                      border: item.active
-                        ? "1px solid #E5D5FF"
-                        : "1px solid #EEE6F5",
-                      cursor: "pointer",
-                      transition: "all 0.25s ease",
-                      "&:hover": {
-                        transform: "translateY(-2px)",
-                        boxShadow: "0 10px 22px rgba(160,130,190,0.08)",
-                      },
+                      width: 56,
+                      height: 56,
+                      background: "linear-gradient(135deg, #9B6BFF, #FF8FC7)",
+                      color: "#fff",
+                      fontSize: "1.4rem",
                     }}
                   >
-                    <Box
+                    🤖
+                  </Avatar>
+
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
                       sx={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 1.4,
+                        fontWeight: 950,
+                        color: "#2F2442",
+                        fontSize: "1rem",
                       }}
                     >
-                      <Badge
-                        overlap="circular"
-                        variant={item.online ? "dot" : undefined}
-                        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                        sx={{
-                          "& .MuiBadge-dot": {
-                            bgcolor: "#6FD49A",
-                            width: 11,
-                            height: 11,
-                            borderRadius: "50%",
-                            border: "2px solid white",
-                          },
-                        }}
-                      >
-                        <Avatar
-                          sx={{
-                            width: 50,
-                            height: 50,
-                            bgcolor: "#D9C3F3",
-                            color: "#5B4E75",
-                            fontWeight: 800,
-                          }}
-                        >
-                          {item.avatar}
-                        </Avatar>
-                      </Badge>
+                      Provider Copilot
+                    </Typography>
 
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "flex-start",
-                            gap: 1,
-                          }}
-                        >
-                          <Typography
-                            sx={{
-                              fontWeight: 800,
-                              color: "#4C4975",
-                              fontSize: "0.98rem",
-                            }}
-                          >
-                            {item.name}
-                          </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: ".85rem",
+                        color: "#7B4CFF",
+                        fontWeight: 800,
+                      }}
+                    >
+                      AI Assistant
+                    </Typography>
 
-                          {item.unread > 0 && (
-                            <Box
-                              sx={{
-                                minWidth: 24,
-                                height: 24,
-                                px: 0.8,
-                                borderRadius: "999px",
-                                bgcolor: "#8D6FE8",
-                                color: "#fff",
-                                fontSize: "0.75rem",
-                                fontWeight: 800,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              {item.unread}
-                            </Box>
-                          )}
-                        </Box>
-
-                        <Typography
-                          sx={{
-                            color: "#7A7494",
-                            mt: 0.35,
-                            fontSize: "0.83rem",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {item.service}
-                        </Typography>
-
-                        <Typography
-                          sx={{
-                            color: "#847D97",
-                            mt: 0.7,
-                            fontSize: "0.9rem",
-                            lineHeight: 1.5,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {item.msg}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Paper>
-                ))}
-              </Stack>
+                    <Typography
+                      sx={{
+                        mt: 0.8,
+                        fontSize: ".9rem",
+                        color: "#7C7193",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {messages[messages.length - 1]?.text}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Paper>
             </Paper>
 
             {/* RIGHT CHAT PANEL */}
@@ -428,17 +331,17 @@ export default function ProviderChat() {
               elevation={0}
               sx={{
                 minHeight: 680,
-                p: 0,
-                borderRadius: "30px",
-                border: "1px solid #EAE2F3",
-                bgcolor: "rgba(255,255,255,0.78)",
-                boxShadow: "0 14px 28px rgba(160,130,190,0.06)",
+                borderRadius: "34px",
+                border: "1px solid rgba(234,226,243,0.95)",
+                background: "rgba(255,255,255,0.74)",
+                backdropFilter: "blur(18px)",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
+                boxShadow: "0 24px 60px rgba(121,89,172,0.12)",
               }}
             >
-              {/* CHAT HEADER */}
+              {/* HEADER */}
               <Box
                 sx={{
                   px: 3,
@@ -447,103 +350,78 @@ export default function ProviderChat() {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: 2,
                   background:
-                    "linear-gradient(135deg, rgba(243,232,255,0.45) 0%, rgba(234,244,255,0.38) 100%)",
+                    "linear-gradient(135deg, rgba(243,232,255,0.72), rgba(234,244,255,0.68))",
                 }}
               >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.6 }}>
-                  <Badge
-                    overlap="circular"
-                    variant={selectedChat?.online ? "dot" : undefined}
-                    anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                <Stack direction="row" alignItems="center" spacing={1.7}>
+                  <Avatar
                     sx={{
-                      "& .MuiBadge-dot": {
-                        bgcolor: "#6FD49A",
-                        width: 11,
-                        height: 11,
-                        borderRadius: "50%",
-                        border: "2px solid white",
-                      },
+                      width: 58,
+                      height: 58,
+                      background: "linear-gradient(135deg, #9B6BFF, #FF8FC7)",
+                      color: "#fff",
+                      fontSize: "1.5rem",
                     }}
                   >
-                    <Avatar
-                      sx={{
-                        width: 56,
-                        height: 56,
-                        bgcolor: "#D9C3F3",
-                        color: "#5B4E75",
-                        fontWeight: 800,
-                        fontSize: "1.2rem",
-                      }}
-                    >
-                      {selectedChat?.avatar}
-                    </Avatar>
-                  </Badge>
+                    🤖
+                  </Avatar>
 
                   <Box>
                     <Typography
                       sx={{
-                        fontWeight: 900,
-                        color: "#4A456C",
-                        fontSize: "1.08rem",
+                        fontWeight: 950,
+                        color: "#2F2442",
+                        fontSize: "1.25rem",
                       }}
                     >
-                      {selectedChat?.name}
+                      Provider Copilot
                     </Typography>
 
-                    <Typography sx={{ color: "#7C7596", fontSize: "0.9rem", mt: 0.3 }}>
-                      {selectedChat?.online ? "Online now" : "Offline"} • {selectedChat?.service}
+                    <Typography sx={{ color: "#8A7AA7", fontSize: ".92rem" }}>
+                      AI Assistant • Online
                     </Typography>
                   </Box>
-                </Box>
+                </Stack>
 
-                <Stack direction="row" spacing={1.2}>
-                  <Button
-                    variant="outlined"
-                    sx={{
-                      minWidth: 0,
-                      width: 42,
-                      height: 42,
-                      borderRadius: "14px",
-                      borderColor: "#D7CEE8",
-                      color: "#6E6685",
-                      bgcolor: "#fff",
-                    }}
-                  >
-                    <CallRoundedIcon fontSize="small" />
-                  </Button>
+                <Chip
+                  label="AI Online"
+                  sx={{
+                    background: "#EFE4FF",
+                    color: "#7B4CFF",
+                    fontWeight: 900,
+                    px: 1,
+                  }}
+                />
+              </Box>
 
-                  <Button
-                    variant="outlined"
-                    sx={{
-                      minWidth: 0,
-                      width: 42,
-                      height: 42,
-                      borderRadius: "14px",
-                      borderColor: "#D7CEE8",
-                      color: "#6E6685",
-                      bgcolor: "#fff",
-                    }}
-                  >
-                    <VideocamRoundedIcon fontSize="small" />
-                  </Button>
-
-                  <Button
-                    variant="outlined"
-                    sx={{
-                      minWidth: 0,
-                      width: 42,
-                      height: 42,
-                      borderRadius: "14px",
-                      borderColor: "#D7CEE8",
-                      color: "#6E6685",
-                      bgcolor: "#fff",
-                    }}
-                  >
-                    <MoreHorizRoundedIcon fontSize="small" />
-                  </Button>
+              {/* QUICK CHIPS */}
+              <Box sx={{ px: 3, py: 2, borderBottom: "1px solid #EEE6F5" }}>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {[
+                    "Generate Reply",
+                    "Suggested Pricing",
+                    "Peak Demand",
+                    "Complaint Summary",
+                    "Upsell Tip",
+                    "Booking Forecast",
+                  ].map((item) => (
+                    <Chip
+                      key={item}
+                      label={item}
+                      onClick={() => quickAsk(item)}
+                      sx={{
+                        background: "#F3E8FF",
+                        color: "#6B4FD3",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        borderRadius: "999px",
+                        "&:hover": {
+                          background: "#E9D7FF",
+                        },
+                      }}
+                    />
+                  ))}
                 </Stack>
               </Box>
 
@@ -555,55 +433,78 @@ export default function ProviderChat() {
                   py: 2.5,
                   overflowY: "auto",
                   background:
-                    "linear-gradient(180deg, rgba(248,245,252,0.65) 0%, rgba(255,255,255,0.35) 100%)",
+                    "radial-gradient(circle at top left, rgba(255,230,245,0.75), transparent 34%), radial-gradient(circle at bottom right, rgba(229,219,255,0.75), transparent 36%)",
                 }}
               >
-                <Stack spacing={1.6}>
-                  {selectedChat?.messages.map((item) => (
+                <Stack spacing={1.8}>
+                  {messages.map((msg) => (
                     <Box
-                      key={item.id}
+                      key={msg.id}
                       sx={{
                         display: "flex",
                         justifyContent:
-                          item.type === "provider" ? "flex-end" : "flex-start",
+                          msg.type === "user" ? "flex-end" : "flex-start",
                       }}
                     >
                       <Paper
                         elevation={0}
                         sx={{
                           p: 2,
-                          maxWidth: 360,
-                          borderRadius: "22px",
-                          bgcolor:
-                            item.type === "provider" ? "#DCC8F1" : "#F4EAF1",
-                          color: "#4D4A76",
+                          maxWidth: 520,
+                          borderRadius:
+                            msg.type === "user"
+                              ? "24px 24px 8px 24px"
+                              : "24px 24px 24px 8px",
+
+                          background:
+                            msg.type === "provider"
+                              ? "linear-gradient(135deg, #F3E8FF 0%, #EAF4FF 100%)"
+                              : "linear-gradient(135deg, #9B6BFF 0%, #FF8FC7 100%)",
+
+                          color: msg.type === "provider" ? "#3D2A63" : "#fff",
+
                           border:
-                            item.type === "provider"
-                              ? "1px solid #D0B9EA"
-                              : "1px solid #EADDE8",
-                          boxShadow: "0 8px 16px rgba(160,130,190,0.05)",
+                            msg.type === "provider"
+                              ? "1px solid #E2D3FF"
+                              : "none",
+
+                          boxShadow:
+                            msg.type === "provider"
+                              ? "0 14px 32px rgba(126,87,194,0.12)"
+                              : "0 16px 36px rgba(155,107,255,0.28)",
                         }}
                       >
-                        <Typography sx={{ lineHeight: 1.7, fontSize: "0.96rem" }}>
-                          {item.text}
+                        <Typography
+                          sx={{
+                            lineHeight: 1.7,
+                            fontSize: ".98rem",
+                            whiteSpace: "pre-line",
+                            fontWeight: 650,
+                          }}
+                        >
+                          {msg.text}
                         </Typography>
+
                         <Typography
                           sx={{
                             mt: 0.8,
-                            fontSize: "0.75rem",
-                            color: "#7B7494",
-                            textAlign: item.type === "provider" ? "right" : "left",
+                            fontSize: ".75rem",
+                            opacity: 0.75,
+                            textAlign:
+                              msg.type === "provider" ? "left" : "right",
                           }}
                         >
-                          {item.time}
+                          {msg.time}
                         </Typography>
                       </Paper>
                     </Box>
                   ))}
+
+                  <div ref={messagesEndRef}></div>
                 </Stack>
               </Box>
 
-              {/* INPUT BAR */}
+              {/* INPUT */}
               <Box
                 sx={{
                   p: 2.3,
@@ -611,32 +512,25 @@ export default function ProviderChat() {
                   background: "rgba(255,255,255,0.92)",
                 }}
               >
-                <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                <Stack direction="row" spacing={1.5} alignItems="center">
                   <Paper
                     elevation={0}
                     sx={{
                       flex: 1,
                       px: 2,
-                      py: 1.25,
-                      borderRadius: "18px",
+                      py: 1.35,
+                      borderRadius: "20px",
                       border: "1px solid #D8D2E6",
-                      bgcolor: "#fff",
+                      background: "#fff",
                     }}
                   >
                     <InputBase
                       fullWidth
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Type a message..."
+                      placeholder="Ask Provider Copilot..."
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleSend();
-                      }}
-                      sx={{
-                        fontSize: "0.98rem",
-                        "& input::placeholder": {
-                          opacity: 1,
-                          color: "#A09AAC",
-                        },
                       }}
                     />
                   </Paper>
@@ -646,24 +540,19 @@ export default function ProviderChat() {
                     variant="contained"
                     endIcon={<SendRoundedIcon />}
                     sx={{
-                      bgcolor: "#C7AEDF",
+                      background: "linear-gradient(135deg, #9B6BFF, #FF8FC7)",
                       color: "#fff",
                       textTransform: "none",
-                      borderRadius: "18px",
-                      px: 2.8,
-                      py: 1.35,
-                      fontWeight: 800,
-                      boxShadow: "0 12px 24px rgba(183,150,216,0.18)",
-                      "&:hover": {
-                        bgcolor: "#B896D8",
-                        transform: "translateY(-2px)",
-                      },
-                      transition: "all 0.25s ease",
+                      borderRadius: "20px",
+                      px: 3,
+                      py: 1.45,
+                      fontWeight: 950,
+                      boxShadow: "0 16px 34px rgba(155,107,255,0.24)",
                     }}
                   >
                     Send
                   </Button>
-                </Box>
+                </Stack>
               </Box>
             </Paper>
           </Box>

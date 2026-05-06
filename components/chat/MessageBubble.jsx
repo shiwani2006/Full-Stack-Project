@@ -1,27 +1,30 @@
-import { Box, Paper, Typography } from "@mui/material";
+import React from "react";
 
-export default function MessageBubble({ message, mine }) {
+const MessageBubble = ({ message }) => {
   return (
-    <Box
-      display="flex"
-      justifyContent={mine ? "flex-end" : "flex-start"}
-      mb={1.5}
-    >
-      <Paper
-        elevation={0}
-        sx={{
-          px: 2,
-          py: 1.5,
-          maxWidth: "70%",
-          borderRadius: 4,
-          backgroundColor: mine ? "#ead7f7" : "#fff7fb",
-          border: "1px solid #f0e5f5",
-        }}
-      >
-        <Typography sx={{ color: "#5C5470", lineHeight: 1.7 }}>
-          {message}
-        </Typography>
-      </Paper>
-    </Box>
+    <div className={`bubble ${message.sender}`}>
+      <p style={{ whiteSpace: "pre-line" }}>{message.text}</p>
+
+      {message.providers &&
+        message.providers.map((provider, i) => (
+          <div key={i} className="provider-card">
+            <h4>{provider.name}</h4>
+            <p>⭐ {provider.rating}</p>
+            <p>₹{provider.price}</p>
+            <p>{provider.available}</p>
+            <small>{provider.specialty}</small>
+          </div>
+        ))}
+
+      {message.actions && (
+        <div className="quick-actions">
+          {message.actions.map((action, i) => (
+            <button key={i}>{action}</button>
+          ))}
+        </div>
+      )}
+    </div>
   );
-}
+};
+
+export default MessageBubble;

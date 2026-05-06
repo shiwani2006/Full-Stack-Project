@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Typography,
@@ -21,384 +21,151 @@ import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
 import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
-import ProviderSidebar, {
-  providerSidebarWidth,
-} from "../../components/layout/ProviderSidebar";
+import ProviderSidebar, { providerSidebarWidth } from "../../components/layout/ProviderSidebar";
 import ProviderTopbar from "../../components/layout/ProviderTopbar";
 import logo from "../../assets/LOGO.png";
-
-const initialBookings = [
-  {
-    id: 1,
-    service: "Home Cleaning",
-    customer: "Shiwani Dhalari",
-    date: "23 Apr 2026",
-    time: "10:00 AM",
-    payment: "Credits",
-    status: "Pending",
-    amount: 0,
-  },
-  {
-    id: 2,
-    service: "AC Repair",
-    customer: "Aman Sharma",
-    date: "24 Apr 2026",
-    time: "12:30 PM",
-    payment: "Cash",
-    status: "Confirmed",
-    amount: 1500,
-  },
-  {
-    id: 3,
-    service: "Tutoring",
-    customer: "Riya Thakur",
-    date: "25 Apr 2026",
-    time: "04:00 PM",
-    payment: "Hybrid",
-    status: "Completed",
-    amount: 800,
-  },
-  {
-    id: 4,
-    service: "Pet Care",
-    customer: "Karan Mehta",
-    date: "26 Apr 2026",
-    time: "09:30 AM",
-    payment: "Credits",
-    status: "Pending",
-    amount: 0,
-  },
-];
+import axiosInstance from "../../services/axiosInstance";
 
 export default function ProviderBookings() {
-  const [bookings, setBookings] = useState(initialBookings);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState(null);
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
 
-  const pendingBookings = useMemo(
-    () => bookings.filter((b) => b.status === "Pending"),
-    [bookings]
-  );
+  useEffect(() => {
+    axiosInstance.get("/bookings/my")
+      .then((res) => setBookings(res.data.bookings || []))
+      .catch((err) => console.error("Failed to fetch bookings", err))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const confirmedBookings = useMemo(
-    () => bookings.filter((b) => b.status === "Confirmed"),
-    [bookings]
-  );
+  const pendingBookings = useMemo(() => bookings.filter((b) => b.status === "pending"), [bookings]);
+  const confirmedBookings = useMemo(() => bookings.filter((b) => b.status === "confirmed"), [bookings]);
+  const completedBookings = useMemo(() => bookings.filter((b) => b.status === "completed"), [bookings]);
 
-  const completedBookings = useMemo(
-    () => bookings.filter((b) => b.status === "Completed"),
-    [bookings]
-  );
-
-  const totalBookings = bookings.length;
-  const pendingCount = pendingBookings.length;
-  const completedCount = completedBookings.length;
   const cashEarned = bookings
-    .filter((b) => b.payment === "Cash" || b.payment === "Hybrid")
-    .reduce((sum, b) => sum + (b.amount || 0), 0);
+    .filter((b) => b.paymentMethod === "cash" || b.paymentMethod === "hybrid")
+    .reduce((sum, b) => sum + (b.cashAmount || 0), 0);
 
   const weeklySuccessRate = useMemo(() => {
     if (!bookings.length) return 0;
-    const positive = bookings.filter(
-      (b) => b.status === "Confirmed" || b.status === "Completed"
-    ).length;
+    const positive = bookings.filter((b) => b.status === "confirmed" || b.status === "completed").length;
     return Math.round((positive / bookings.length) * 100);
   }, [bookings]);
 
-  const handleAccept = (id) => {
-    setBookings((prev) =>
-      prev.map((booking) =>
-        booking.id === id ? { ...booking, status: "Confirmed" } : booking
-      )
-    );
+  const updateBookingStatus = async (id, status) => {
+    try {
+      await axiosInstance.patch(`/bookings/${id}/status`, { status });
+      setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status } : b));
+    } catch (err) {
+      console.error("Failed to update booking", err);
+    }
   };
 
-  const handleDecline = (id) => {
-    setBookings((prev) => prev.filter((booking) => booking.id !== id));
-  };
-
-  const handleMarkCompleted = (id) => {
-    setBookings((prev) =>
-      prev.map((booking) =>
-        booking.id === id ? { ...booking, status: "Completed" } : booking
-      )
-    );
-  };
+  const handleAccept = (id) => updateBookingStatus(id, "confirmed");
+  const handleDecline = (id) => updateBookingStatus(id, "cancelled");
+  const handleMarkCompleted = (id) => updateBookingStatus(id, "completed");
 
   const handleOpenReschedule = (id) => {
-    const booking = bookings.find((b) => b.id === id);
     setSelectedBookingId(id);
-    setNewDate(booking?.date || "");
-    setNewTime(booking?.time || "");
+    setNewDate("");
+    setNewTime("");
     setDialogOpen(true);
   };
 
   const handleSaveReschedule = () => {
-    if (!selectedBookingId || !newDate || !newTime) return;
-
+    if (!selectedBookingId || !newDate) return;
     setBookings((prev) =>
-      prev.map((booking) =>
-        booking.id === selectedBookingId
-          ? {
-              ...booking,
-              date: newDate,
-              time: newTime,
-              status: "Confirmed",
-            }
-          : booking
-      )
+      prev.map((b) => b.id === selectedBookingId ? { ...b, scheduledAt: newDate, status: "confirmed" } : b)
     );
-
     setDialogOpen(false);
     setSelectedBookingId(null);
-    setNewDate("");
-    setNewTime("");
   };
 
-  const getPaymentChip = (payment) => {
-    if (payment === "Cash") {
-      return { bg: "#EAF2FF", color: "#536B96" };
-    }
-    if (payment === "Hybrid") {
-      return { bg: "#F3E8FF", color: "#71569F" };
-    }
+  const getPaymentChip = (method) => {
+    if (method === "cash") return { bg: "#EAF2FF", color: "#536B96" };
+    if (method === "hybrid") return { bg: "#F3E8FF", color: "#71569F" };
     return { bg: "#F8F1D8", color: "#7E6932" };
   };
 
   const statusChip = (status) => {
-    if (status === "Completed") return { bg: "#E7F7EA", color: "#4F7457" };
-    if (status === "Confirmed") return { bg: "#EAF1FF", color: "#4D6691" };
+    if (status === "completed") return { bg: "#E7F7EA", color: "#4F7457" };
+    if (status === "confirmed") return { bg: "#EAF1FF", color: "#4D6691" };
+    if (status === "cancelled") return { bg: "#FFE5E5", color: "#D00000" };
     return { bg: "#FAF0D6", color: "#7A6731" };
   };
 
+  const getStatusLabel = (status) => {
+    if (status === "completed") return "Completed";
+    if (status === "confirmed") return "Confirmed";
+    if (status === "cancelled") return "Cancelled";
+    return "Pending";
+  };
+
   const stats = [
-    {
-      title: "Total Bookings",
-      value: totalBookings,
-      sub: "Live requests",
-      icon: <CalendarMonthRoundedIcon />,
-      bg: "#F5ECFB",
-    },
-    {
-      title: "Pending",
-      value: pendingCount,
-      sub: "Need response",
-      icon: <PendingActionsRoundedIcon />,
-      bg: "#FFF5E8",
-    },
-    {
-      title: "Completed",
-      value: completedCount,
-      sub: "Finished jobs",
-      icon: <CheckCircleRoundedIcon />,
-      bg: "#EEF7EA",
-    },
-    {
-      title: "Cash Earned",
-      value: `₹${cashEarned}`,
-      sub: "From bookings",
-      icon: <CurrencyRupeeRoundedIcon />,
-      bg: "#EAF2FF",
-    },
+    { title: "Total Bookings", value: bookings.length, sub: "Live requests", icon: <CalendarMonthRoundedIcon />, bg: "#F5ECFB" },
+    { title: "Pending", value: pendingBookings.length, sub: "Need response", icon: <PendingActionsRoundedIcon />, bg: "#FFF5E8" },
+    { title: "Completed", value: completedBookings.length, sub: "Finished jobs", icon: <CheckCircleRoundedIcon />, bg: "#EEF7EA" },
+    { title: "Cash Earned", value: `₹${cashEarned}`, sub: "From bookings", icon: <CurrencyRupeeRoundedIcon />, bg: "#EAF2FF" },
   ];
 
   const renderBookingCard = (booking, type = "pending") => {
-    const paymentStyle = getPaymentChip(booking.payment);
+    const paymentStyle = getPaymentChip(booking.paymentMethod);
     const statusStyle = statusChip(booking.status);
 
     return (
-      <Paper
-        key={booking.id}
-        elevation={0}
-        sx={{
-          p: 2.3,
-          borderRadius: "22px",
-          bgcolor: "#FAF8FD",
-          border: "1px solid #EEE6F5",
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 2,
-            flexWrap: "wrap",
-            alignItems: "flex-start",
-          }}
-        >
+      <Paper key={booking.id} elevation={0} sx={{ p: 2.3, borderRadius: "22px", bgcolor: "#FAF8FD", border: "1px solid #EEE6F5" }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", alignItems: "flex-start" }}>
           <Box sx={{ flex: 1, minWidth: 240 }}>
-            <Typography
-              sx={{
-                fontWeight: 900,
-                color: "#3F3558",
-                fontSize: "1.08rem",
-                mb: 0.6,
-              }}
-            >
-              {booking.service}
+            <Typography sx={{ fontWeight: 900, color: "#3F3558", fontSize: "1.08rem", mb: 0.6 }}>
+              {booking.service?.title || "Service"}
             </Typography>
-
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={{ xs: 0.7, sm: 1.5 }}
-              sx={{ color: "#7C7593" }}
-              useFlexGap
-            >
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 0.7, sm: 1.5 }} sx={{ color: "#7C7593" }} useFlexGap>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.7 }}>
                 <PersonRoundedIcon sx={{ fontSize: 17 }} />
-                <Typography sx={{ fontSize: "0.93rem" }}>
-                  {booking.customer}
-                </Typography>
+                <Typography sx={{ fontSize: "0.93rem" }}>{booking.requester?.name || "User"}</Typography>
               </Box>
-
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.7 }}>
                 <CalendarMonthRoundedIcon sx={{ fontSize: 17 }} />
                 <Typography sx={{ fontSize: "0.93rem" }}>
-                  {booking.date}
+                  {booking.scheduledAt ? new Date(booking.scheduledAt).toLocaleDateString() : new Date(booking.createdAt).toLocaleDateString()}
                 </Typography>
               </Box>
-
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.7 }}>
                 <AccessTimeRoundedIcon sx={{ fontSize: 17 }} />
-                <Typography sx={{ fontSize: "0.93rem" }}>
-                  {booking.time}
-                </Typography>
+                <Typography sx={{ fontSize: "0.93rem" }}>{booking.paymentMethod}</Typography>
               </Box>
             </Stack>
           </Box>
 
-          <Stack
-            direction="row"
-            spacing={1}
-            flexWrap="wrap"
-            useFlexGap
-            justifyContent={{ xs: "flex-start", sm: "flex-end" }}
-          >
-            <Chip
-              label={booking.payment}
-              size="small"
-              sx={{
-                bgcolor: paymentStyle.bg,
-                color: paymentStyle.color,
-                fontWeight: 700,
-              }}
-            />
-            <Chip
-              label={booking.status}
-              size="small"
-              sx={{
-                bgcolor: statusStyle.bg,
-                color: statusStyle.color,
-                fontWeight: 700,
-              }}
-            />
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap justifyContent={{ xs: "flex-start", sm: "flex-end" }}>
+            <Chip label={booking.paymentMethod} size="small" sx={{ bgcolor: paymentStyle.bg, color: paymentStyle.color, fontWeight: 700 }} />
+            <Chip label={getStatusLabel(booking.status)} size="small" sx={{ bgcolor: statusStyle.bg, color: statusStyle.color, fontWeight: 700 }} />
           </Stack>
         </Box>
 
         {type === "pending" && (
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1.2}
-            sx={{ mt: 2.1 }}
-          >
-            <Button
-              variant="contained"
-              onClick={() => handleAccept(booking.id)}
-              sx={{
-                textTransform: "none",
-                borderRadius: "14px",
-                px: 2.2,
-                py: 1,
-                fontWeight: 700,
-                minWidth: 110,
-                bgcolor: "#8D6FE8",
-                boxShadow: "none",
-                "&:hover": { bgcolor: "#7C5FE0" },
-              }}
-            >
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} sx={{ mt: 2.1 }}>
+            <Button variant="contained" onClick={() => handleAccept(booking.id)} sx={{ textTransform: "none", borderRadius: "14px", px: 2.2, py: 1, fontWeight: 700, minWidth: 110, bgcolor: "#8D6FE8", boxShadow: "none", "&:hover": { bgcolor: "#7C5FE0" } }}>
               Accept
             </Button>
-
-            <Button
-              variant="outlined"
-              onClick={() => handleOpenReschedule(booking.id)}
-              sx={{
-                textTransform: "none",
-                borderRadius: "14px",
-                px: 2.2,
-                py: 1,
-                fontWeight: 700,
-                minWidth: 130,
-                borderColor: "#D7CEE8",
-                color: "#5A526E",
-                bgcolor: "#fff",
-              }}
-            >
+            <Button variant="outlined" onClick={() => handleOpenReschedule(booking.id)} sx={{ textTransform: "none", borderRadius: "14px", px: 2.2, py: 1, fontWeight: 700, minWidth: 130, borderColor: "#D7CEE8", color: "#5A526E", bgcolor: "#fff" }}>
               Reschedule
             </Button>
-
-            <Button
-              variant="outlined"
-              onClick={() => handleDecline(booking.id)}
-              sx={{
-                textTransform: "none",
-                borderRadius: "14px",
-                px: 2.2,
-                py: 1,
-                fontWeight: 700,
-                minWidth: 110,
-                borderColor: "#E3CDD3",
-                color: "#9A5D6A",
-                bgcolor: "#fff",
-              }}
-            >
+            <Button variant="outlined" onClick={() => handleDecline(booking.id)} sx={{ textTransform: "none", borderRadius: "14px", px: 2.2, py: 1, fontWeight: 700, minWidth: 110, borderColor: "#E3CDD3", color: "#9A5D6A", bgcolor: "#fff" }}>
               Decline
             </Button>
           </Stack>
         )}
 
         {type === "confirmed" && (
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1.2}
-            sx={{ mt: 2.1 }}
-          >
-            <Button
-              variant="contained"
-              startIcon={<TaskAltRoundedIcon />}
-              onClick={() => handleMarkCompleted(booking.id)}
-              sx={{
-                textTransform: "none",
-                borderRadius: "14px",
-                px: 2.2,
-                py: 1,
-                fontWeight: 700,
-                minWidth: 150,
-                bgcolor: "#8D6FE8",
-                boxShadow: "none",
-                "&:hover": { bgcolor: "#7C5FE0" },
-              }}
-            >
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} sx={{ mt: 2.1 }}>
+            <Button variant="contained" startIcon={<TaskAltRoundedIcon />} onClick={() => handleMarkCompleted(booking.id)} sx={{ textTransform: "none", borderRadius: "14px", px: 2.2, py: 1, fontWeight: 700, minWidth: 150, bgcolor: "#8D6FE8", boxShadow: "none", "&:hover": { bgcolor: "#7C5FE0" } }}>
               Mark Completed
             </Button>
-
-            <Button
-              variant="outlined"
-              onClick={() => handleOpenReschedule(booking.id)}
-              sx={{
-                textTransform: "none",
-                borderRadius: "14px",
-                px: 2.2,
-                py: 1,
-                fontWeight: 700,
-                minWidth: 130,
-                borderColor: "#D7CEE8",
-                color: "#5A526E",
-                bgcolor: "#fff",
-              }}
-            >
+            <Button variant="outlined" onClick={() => handleOpenReschedule(booking.id)} sx={{ textTransform: "none", borderRadius: "14px", px: 2.2, py: 1, fontWeight: 700, minWidth: 130, borderColor: "#D7CEE8", color: "#5A526E", bgcolor: "#fff" }}>
               Reschedule
             </Button>
           </Stack>
@@ -408,44 +175,11 @@ export default function ProviderBookings() {
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        minHeight: "100vh",
-        bgcolor: "#F8F5FC",
-        backgroundImage: `
-          radial-gradient(circle at 0% 100%, rgba(224,236,255,0.82) 0, transparent 22%),
-          radial-gradient(circle at 100% 0%, rgba(255,214,231,0.72) 0, transparent 20%)
-        `,
-      }}
-    >
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#F8F5FC", backgroundImage: `radial-gradient(circle at 0% 100%, rgba(224,236,255,0.82) 0, transparent 22%), radial-gradient(circle at 100% 0%, rgba(255,214,231,0.72) 0, transparent 20%)` }}>
       <ProviderSidebar />
 
-      <Box
-        sx={{
-          ml: `${providerSidebarWidth}px`,
-          flex: 1,
-          p: { xs: 2, md: 3 },
-          position: "relative",
-          overflowY: "auto",
-          minHeight: "100vh",
-        }}
-      >
-        <Box
-          component="img"
-          src={logo}
-          alt="bg-logo"
-          sx={{
-            position: "absolute",
-            right: 30,
-            bottom: 30,
-            width: 300,
-            opacity: 0.035,
-            pointerEvents: "none",
-            userSelect: "none",
-            zIndex: 0,
-          }}
-        />
+      <Box sx={{ ml: `${providerSidebarWidth}px`, flex: 1, p: { xs: 2, md: 3 }, position: "relative", overflowY: "auto", minHeight: "100vh" }}>
+        <Box component="img" src={logo} alt="bg-logo" sx={{ position: "absolute", right: 30, bottom: 30, width: 300, opacity: 0.035, pointerEvents: "none", userSelect: "none", zIndex: 0 }} />
 
         <Box sx={{ position: "relative", zIndex: 1 }}>
           <ProviderTopbar title="Provider Bookings" />
@@ -453,51 +187,13 @@ export default function ProviderBookings() {
           <Grid container spacing={2.5} sx={{ mb: 3 }}>
             {stats.map((item, index) => (
               <Grid item xs={12} sm={6} xl={3} key={index}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2.6,
-                    borderRadius: "26px",
-                    bgcolor: item.bg,
-                    border: "1px solid #E9E1F3",
-                    boxShadow: "0 10px 24px rgba(160,130,190,0.05)",
-                    minHeight: 155,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 50,
-                      height: 50,
-                      borderRadius: "16px",
-                      bgcolor: "rgba(255,255,255,0.72)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#5A5D78",
-                      mb: 1.8,
-                    }}
-                  >
+                <Paper elevation={0} sx={{ p: 2.6, borderRadius: "26px", bgcolor: item.bg, border: "1px solid #E9E1F3", boxShadow: "0 10px 24px rgba(160,130,190,0.05)", minHeight: 155 }}>
+                  <Box sx={{ width: 50, height: 50, borderRadius: "16px", bgcolor: "rgba(255,255,255,0.72)", display: "flex", alignItems: "center", justifyContent: "center", color: "#5A5D78", mb: 1.8 }}>
                     {item.icon}
                   </Box>
-
-                  <Typography sx={{ color: "#7A7391", fontSize: "0.92rem", mb: 0.6 }}>
-                    {item.title}
-                  </Typography>
-
-                  <Typography
-                    sx={{
-                      fontSize: "1.9rem",
-                      fontWeight: 900,
-                      color: "#4E416D",
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    {item.value}
-                  </Typography>
-
-                  <Typography sx={{ color: "#8A839C", fontSize: "0.88rem", mt: 0.9 }}>
-                    {item.sub}
-                  </Typography>
+                  <Typography sx={{ color: "#7A7391", fontSize: "0.92rem", mb: 0.6 }}>{item.title}</Typography>
+                  <Typography sx={{ fontSize: "1.9rem", fontWeight: 900, color: "#4E416D", lineHeight: 1.1 }}>{item.value}</Typography>
+                  <Typography sx={{ color: "#8A839C", fontSize: "0.88rem", mt: 0.9 }}>{item.sub}</Typography>
                 </Paper>
               </Grid>
             ))}
@@ -506,141 +202,46 @@ export default function ProviderBookings() {
           <Grid container spacing={3} alignItems="stretch">
             <Grid item xs={12} lg={8}>
               <Stack spacing={3}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: { xs: 2.4, md: 3 },
-                    borderRadius: "30px",
-                    bgcolor: "rgba(255,255,255,0.84)",
-                    border: "1px solid #EEE6F5",
-                    boxShadow: "0 12px 28px rgba(160,130,190,0.06)",
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: { xs: "1.8rem", md: "2.1rem" },
-                      fontWeight: 900,
-                      color: "#4E416D",
-                      lineHeight: 1.1,
-                      mb: 0.7,
-                    }}
-                  >
-                    Pending Requests
-                  </Typography>
-
-                  <Typography
-                    sx={{
-                      color: "#7B7390",
-                      lineHeight: 1.7,
-                      fontSize: "0.96rem",
-                      mb: 2.6,
-                    }}
-                  >
-                    Accept or reschedule incoming booking requests. Declined requests are removed.
-                  </Typography>
-
+                {/* Pending */}
+                <Paper elevation={0} sx={{ p: { xs: 2.4, md: 3 }, borderRadius: "30px", bgcolor: "rgba(255,255,255,0.84)", border: "1px solid #EEE6F5", boxShadow: "0 12px 28px rgba(160,130,190,0.06)" }}>
+                  <Typography sx={{ fontSize: { xs: "1.8rem", md: "2.1rem" }, fontWeight: 900, color: "#4E416D", lineHeight: 1.1, mb: 0.7 }}>Pending Requests</Typography>
+                  <Typography sx={{ color: "#7B7390", lineHeight: 1.7, fontSize: "0.96rem", mb: 2.6 }}>Accept or reschedule incoming booking requests.</Typography>
                   <Stack spacing={2}>
-                    {pendingBookings.length ? (
-                      pendingBookings.map((booking) => renderBookingCard(booking, "pending"))
+                    {loading ? (
+                      <Typography sx={{ color: "#8A839C" }}>Loading...</Typography>
+                    ) : pendingBookings.length ? (
+                      pendingBookings.map((b) => renderBookingCard(b, "pending"))
                     ) : (
-                      <Paper
-                        elevation={0}
-                        sx={{
-                          p: 2.5,
-                          borderRadius: "22px",
-                          bgcolor: "#FAF8FD",
-                          border: "1px solid #EEE6F5",
-                        }}
-                      >
-                        <Typography sx={{ color: "#7B7390", fontSize: "0.96rem" }}>
-                          No pending requests right now.
-                        </Typography>
+                      <Paper elevation={0} sx={{ p: 2.5, borderRadius: "22px", bgcolor: "#FAF8FD", border: "1px solid #EEE6F5" }}>
+                        <Typography sx={{ color: "#7B7390" }}>No pending requests right now.</Typography>
                       </Paper>
                     )}
                   </Stack>
                 </Paper>
 
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: { xs: 2.4, md: 3 },
-                    borderRadius: "30px",
-                    bgcolor: "rgba(255,255,255,0.84)",
-                    border: "1px solid #EEE6F5",
-                    boxShadow: "0 12px 28px rgba(160,130,190,0.06)",
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: { xs: "1.6rem", md: "1.9rem" },
-                      fontWeight: 900,
-                      color: "#4E416D",
-                      lineHeight: 1.1,
-                      mb: 2,
-                    }}
-                  >
-                    Confirmed Bookings
-                  </Typography>
-
+                {/* Confirmed */}
+                <Paper elevation={0} sx={{ p: { xs: 2.4, md: 3 }, borderRadius: "30px", bgcolor: "rgba(255,255,255,0.84)", border: "1px solid #EEE6F5", boxShadow: "0 12px 28px rgba(160,130,190,0.06)" }}>
+                  <Typography sx={{ fontSize: { xs: "1.6rem", md: "1.9rem" }, fontWeight: 900, color: "#4E416D", lineHeight: 1.1, mb: 2 }}>Confirmed Bookings</Typography>
                   <Stack spacing={2}>
                     {confirmedBookings.length ? (
-                      confirmedBookings.map((booking) => renderBookingCard(booking, "confirmed"))
+                      confirmedBookings.map((b) => renderBookingCard(b, "confirmed"))
                     ) : (
-                      <Paper
-                        elevation={0}
-                        sx={{
-                          p: 2.5,
-                          borderRadius: "22px",
-                          bgcolor: "#FAF8FD",
-                          border: "1px solid #EEE6F5",
-                        }}
-                      >
-                        <Typography sx={{ color: "#7B7390", fontSize: "0.96rem" }}>
-                          No confirmed bookings yet.
-                        </Typography>
+                      <Paper elevation={0} sx={{ p: 2.5, borderRadius: "22px", bgcolor: "#FAF8FD", border: "1px solid #EEE6F5" }}>
+                        <Typography sx={{ color: "#7B7390" }}>No confirmed bookings yet.</Typography>
                       </Paper>
                     )}
                   </Stack>
                 </Paper>
 
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: { xs: 2.4, md: 3 },
-                    borderRadius: "30px",
-                    bgcolor: "rgba(255,255,255,0.84)",
-                    border: "1px solid #EEE6F5",
-                    boxShadow: "0 12px 28px rgba(160,130,190,0.06)",
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: { xs: "1.6rem", md: "1.9rem" },
-                      fontWeight: 900,
-                      color: "#4E416D",
-                      lineHeight: 1.1,
-                      mb: 2,
-                    }}
-                  >
-                    Completed Bookings
-                  </Typography>
-
+                {/* Completed */}
+                <Paper elevation={0} sx={{ p: { xs: 2.4, md: 3 }, borderRadius: "30px", bgcolor: "rgba(255,255,255,0.84)", border: "1px solid #EEE6F5", boxShadow: "0 12px 28px rgba(160,130,190,0.06)" }}>
+                  <Typography sx={{ fontSize: { xs: "1.6rem", md: "1.9rem" }, fontWeight: 900, color: "#4E416D", lineHeight: 1.1, mb: 2 }}>Completed Bookings</Typography>
                   <Stack spacing={2}>
                     {completedBookings.length ? (
-                      completedBookings.map((booking) => renderBookingCard(booking, "completed"))
+                      completedBookings.map((b) => renderBookingCard(b, "completed"))
                     ) : (
-                      <Paper
-                        elevation={0}
-                        sx={{
-                          p: 2.5,
-                          borderRadius: "22px",
-                          bgcolor: "#FAF8FD",
-                          border: "1px solid #EEE6F5",
-                        }}
-                      >
-                        <Typography sx={{ color: "#7B7390", fontSize: "0.96rem" }}>
-                          No completed bookings yet.
-                        </Typography>
+                      <Paper elevation={0} sx={{ p: 2.5, borderRadius: "22px", bgcolor: "#FAF8FD", border: "1px solid #EEE6F5" }}>
+                        <Typography sx={{ color: "#7B7390" }}>No completed bookings yet.</Typography>
                       </Paper>
                     )}
                   </Stack>
@@ -650,155 +251,47 @@ export default function ProviderBookings() {
 
             <Grid item xs={12} lg={4}>
               <Stack spacing={3} sx={{ height: "100%" }}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2.6,
-                    borderRadius: "30px",
-                    bgcolor: "rgba(255,255,255,0.84)",
-                    border: "1px solid #EEE6F5",
-                    boxShadow: "0 12px 28px rgba(160,130,190,0.06)",
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: "1.3rem",
-                      fontWeight: 900,
-                      color: "#4E416D",
-                      mb: 2,
-                    }}
-                  >
-                    Today’s Schedule
-                  </Typography>
-
+                <Paper elevation={0} sx={{ p: 2.6, borderRadius: "30px", bgcolor: "rgba(255,255,255,0.84)", border: "1px solid #EEE6F5", boxShadow: "0 12px 28px rgba(160,130,190,0.06)" }}>
+                  <Typography sx={{ fontSize: "1.3rem", fontWeight: 900, color: "#4E416D", mb: 2 }}>Today's Schedule</Typography>
                   <Stack spacing={1.5}>
                     {confirmedBookings.length ? (
                       confirmedBookings.map((item) => (
-                        <Paper
-                          key={item.id}
-                          elevation={0}
-                          sx={{
-                            p: 2,
-                            borderRadius: "20px",
-                            bgcolor: "#FAF8FD",
-                            border: "1px solid #EEE6F5",
-                          }}
-                        >
-                          <Typography
-                            sx={{
-                              fontWeight: 800,
-                              color: "#3F3558",
-                              fontSize: "1rem",
-                            }}
-                          >
-                            {item.service}
+                        <Paper key={item.id} elevation={0} sx={{ p: 2, borderRadius: "20px", bgcolor: "#FAF8FD", border: "1px solid #EEE6F5" }}>
+                          <Typography sx={{ fontWeight: 800, color: "#3F3558", fontSize: "1rem" }}>
+                            {item.service?.title || "Service"}
                           </Typography>
-
                           <Typography sx={{ color: "#7B7390", mt: 0.5, fontSize: "0.92rem" }}>
-                            {item.customer}
+                            {item.requester?.name || "User"}
                           </Typography>
-
                           <Chip
-                            label={`${item.date} • ${item.time}`}
+                            label={item.scheduledAt ? new Date(item.scheduledAt).toLocaleDateString() : new Date(item.createdAt).toLocaleDateString()}
                             size="small"
-                            sx={{
-                              mt: 1.2,
-                              bgcolor: "#F3E8FF",
-                              color: "#6B4FD3",
-                              fontWeight: 700,
-                            }}
+                            sx={{ mt: 1.2, bgcolor: "#F3E8FF", color: "#6B4FD3", fontWeight: 700 }}
                           />
                         </Paper>
                       ))
                     ) : (
-                      <Paper
-                        elevation={0}
-                        sx={{
-                          p: 2.2,
-                          borderRadius: "20px",
-                          bgcolor: "#FAF8FD",
-                          border: "1px solid #EEE6F5",
-                        }}
-                      >
-                        <Typography sx={{ color: "#7B7390", fontSize: "0.94rem" }}>
-                          No confirmed schedule for now.
-                        </Typography>
+                      <Paper elevation={0} sx={{ p: 2.2, borderRadius: "20px", bgcolor: "#FAF8FD", border: "1px solid #EEE6F5" }}>
+                        <Typography sx={{ color: "#7B7390", fontSize: "0.94rem" }}>No confirmed schedule for now.</Typography>
                       </Paper>
                     )}
                   </Stack>
                 </Paper>
 
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2.6,
-                    borderRadius: "30px",
-                    bgcolor: "rgba(255,255,255,0.84)",
-                    border: "1px solid #EEE6F5",
-                    boxShadow: "0 12px 28px rgba(160,130,190,0.06)",
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: "1.3rem",
-                      fontWeight: 900,
-                      color: "#4E416D",
-                      mb: 1.4,
-                    }}
-                  >
-                    Booking Insights
+                <Paper elevation={0} sx={{ p: 2.6, borderRadius: "30px", bgcolor: "rgba(255,255,255,0.84)", border: "1px solid #EEE6F5", boxShadow: "0 12px 28px rgba(160,130,190,0.06)" }}>
+                  <Typography sx={{ fontSize: "1.3rem", fontWeight: 900, color: "#4E416D", mb: 1.4 }}>Booking Insights</Typography>
+                  <Typography sx={{ color: "#7B7390", lineHeight: 1.8, fontSize: "0.94rem", mb: 2 }}>
+                    Accepted bookings move into confirmed section. Declined bookings are cancelled.
                   </Typography>
-
-                  <Typography
-                    sx={{
-                      color: "#7B7390",
-                      lineHeight: 1.8,
-                      fontSize: "0.94rem",
-                      mb: 2,
-                    }}
-                  >
-                    Accepted bookings move into confirmed section. Declined bookings are removed from the page instantly.
-                  </Typography>
-
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 2.1,
-                      borderRadius: "22px",
-                      background: "linear-gradient(135deg, #F2E8FF, #FFEAF3)",
-                      border: "1px solid #EEDFF7",
-                    }}
-                  >
-                    <Typography sx={{ color: "#7D6A9A", fontSize: "0.92rem" }}>
-                      Weekly Success Rate
-                    </Typography>
-
-                    <Typography
-                      sx={{
-                        fontSize: "1.9rem",
-                        fontWeight: 900,
-                        color: "#6B4FD3",
-                        mt: 0.5,
-                      }}
-                    >
-                      {weeklySuccessRate}%
-                    </Typography>
+                  <Paper elevation={0} sx={{ p: 2.1, borderRadius: "22px", background: "linear-gradient(135deg, #F2E8FF, #FFEAF3)", border: "1px solid #EEDFF7" }}>
+                    <Typography sx={{ color: "#7D6A9A", fontSize: "0.92rem" }}>Weekly Success Rate</Typography>
+                    <Typography sx={{ fontSize: "1.9rem", fontWeight: 900, color: "#6B4FD3", mt: 0.5 }}>{weeklySuccessRate}%</Typography>
                   </Paper>
-
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      mt: 2,
-                      p: 2.1,
-                      borderRadius: "22px",
-                      bgcolor: "#FAF8FD",
-                      border: "1px solid #EEE6F5",
-                    }}
-                  >
+                  <Paper elevation={0} sx={{ mt: 2, p: 2.1, borderRadius: "22px", bgcolor: "#FAF8FD", border: "1px solid #EEE6F5" }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <EventAvailableRoundedIcon sx={{ color: "#6B4FD3" }} />
                       <Typography sx={{ color: "#5F5870", fontSize: "0.94rem" }}>
-                        Confirmed bookings appear in Today’s Schedule automatically.
+                        Confirmed bookings appear in Today's Schedule automatically.
                       </Typography>
                     </Stack>
                   </Paper>
@@ -809,64 +302,17 @@ export default function ProviderBookings() {
         </Box>
       </Box>
 
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        fullWidth
-        maxWidth="xs"
-        PaperProps={{
-          sx: {
-            borderRadius: "24px",
-            p: 1,
-          },
-        }}
-      >
-        <DialogTitle sx={{ fontWeight: 800, color: "#4E416D" }}>
-          Reschedule Booking
-        </DialogTitle>
-
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: "24px", p: 1 } }}>
+        <DialogTitle sx={{ fontWeight: 800, color: "#4E416D" }}>Reschedule Booking</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              fullWidth
-              label="New Date"
-              value={newDate}
-              onChange={(e) => setNewDate(e.target.value)}
-            />
-            <TextField
-              fullWidth
-              label="New Time"
-              value={newTime}
-              onChange={(e) => setNewTime(e.target.value)}
-            />
+            <TextField fullWidth type="date" label="New Date" value={newDate} onChange={(e) => setNewDate(e.target.value)} InputLabelProps={{ shrink: true }} />
+            <TextField fullWidth label="New Time" value={newTime} onChange={(e) => setNewTime(e.target.value)} placeholder="e.g. 10:00 AM" />
           </Stack>
         </DialogContent>
-
         <DialogActions sx={{ px: 2, pb: 2 }}>
-          <Button
-            onClick={() => setDialogOpen(false)}
-            sx={{
-              textTransform: "none",
-              color: "#5A526E",
-              fontWeight: 700,
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSaveReschedule}
-            variant="contained"
-            sx={{
-              textTransform: "none",
-              borderRadius: "12px",
-              bgcolor: "#8D6FE8",
-              fontWeight: 700,
-              boxShadow: "none",
-              "&:hover": { bgcolor: "#7C5FE0" },
-            }}
-          >
-            Save
-          </Button>
+          <Button onClick={() => setDialogOpen(false)} sx={{ textTransform: "none", color: "#5A526E", fontWeight: 700 }}>Cancel</Button>
+          <Button onClick={handleSaveReschedule} variant="contained" sx={{ textTransform: "none", borderRadius: "12px", bgcolor: "#8D6FE8", fontWeight: 700, boxShadow: "none", "&:hover": { bgcolor: "#7C5FE0" } }}>Save</Button>
         </DialogActions>
       </Dialog>
     </Box>

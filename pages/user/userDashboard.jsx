@@ -20,17 +20,17 @@ export default function Topbar({ title = "Dashboard" }) {
   const [searchText, setSearchText] = useState("");
 
   const user = JSON.parse(localStorage.getItem("user")) || {
-    name: "Shiwani",
+    name: "User",
     role: "user",
   };
 
   const handleSearch = () => {
     const value = searchText.trim();
     if (!value) {
-      navigate("/services");
+      navigate("/user/services");
       return;
     }
-    navigate(`/services?search=${encodeURIComponent(value)}`);
+    navigate(`/user/services?search=${encodeURIComponent(value)}`);
   };
 
   const handleSearchKeyDown = (e) => {
@@ -39,6 +39,7 @@ export default function Topbar({ title = "Dashboard" }) {
 
   const handleLogout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     navigate("/login");
   };
 
@@ -130,9 +131,7 @@ export default function Topbar({ title = "Dashboard" }) {
                   fontWeight: 700,
                   bgcolor: "#8D6FE8",
                   boxShadow: "none",
-                  "&:hover": {
-                    bgcolor: "#7C5FE0",
-                  },
+                  "&:hover": { bgcolor: "#7C5FE0" },
                 }}
               >
                 Search
@@ -141,7 +140,7 @@ export default function Topbar({ title = "Dashboard" }) {
 
             <Paper
               elevation={0}
-              onClick={() => navigate("/chat")}
+              onClick={() => navigate(user.role === "provider" ? "/provider/chat" : "/user/chat")}
               sx={{
                 width: 68,
                 height: 68,
@@ -159,7 +158,7 @@ export default function Topbar({ title = "Dashboard" }) {
                 },
               }}
             >
-              <Badge badgeContent={3} color="error">
+              <Badge badgeContent={0} color="error">
                 <NotificationsRoundedIcon sx={{ color: "#5A536B", fontSize: 28 }} />
               </Badge>
             </Paper>
@@ -182,7 +181,7 @@ export default function Topbar({ title = "Dashboard" }) {
                 whiteSpace: "nowrap",
               }}
             >
-              Hi, {user.name || "Shiwani"}
+              Hi, {user.name || "User"}
             </Typography>
 
             <Avatar
@@ -196,7 +195,7 @@ export default function Topbar({ title = "Dashboard" }) {
                 boxShadow: "0 10px 24px rgba(183,155,232,0.34)",
               }}
             >
-              {(user.name || "S").charAt(0).toUpperCase()}
+              {(user.name || "U").charAt(0).toUpperCase()}
             </Avatar>
 
             <Button
@@ -252,9 +251,7 @@ export default function Topbar({ title = "Dashboard" }) {
                 py: 1.4,
                 minWidth: 150,
                 boxShadow: "none",
-                "&:hover": {
-                  bgcolor: "#E9B7C0",
-                },
+                "&:hover": { bgcolor: "#E9B7C0" },
               }}
             >
               Logout
