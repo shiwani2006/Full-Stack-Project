@@ -214,13 +214,17 @@ PORT=5000
 ✅ Scalable Architecture  
 
 ---
-
+Home Page 
 <img width="1894" height="866" alt="image" src="https://github.com/user-attachments/assets/36bb6dbd-16e6-438f-9515-5140cb062918" />
 
 
+
+User Dashboard
 <img width="1330" height="635" alt="WhatsApp Image 2026-05-06 at 23 25 50" src="https://github.com/user-attachments/assets/8dffbd82-2ba2-408b-bb33-f9f491c46296" />
 
 
+
+Provider Dashboard
 <img width="1347" height="625" alt="WhatsApp Image 2026-05-06 at 23 26 12" src="https://github.com/user-attachments/assets/ef7dd7e2-1328-48ca-b278-7604afcfccea" />
 
 
