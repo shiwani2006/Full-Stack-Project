@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  password      String
+  creditBalance Float    @default(0)
+  cashBalance   Float    @default(0)    // ADD THIS
+  trustScore    Float    @default(100)  // ADD THIS
+  role          String   @default("user")
+  isFlagged     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  servicesOffered     Service[]
+  bookingsAsProvider  Booking[]      @relation("Provider")
+  bookingsAsRequester Booking[]      @relation("Requester")
+  credits             CreditLedger[]
+  reviewsGiven        Review[]       @relation("ReviewsGiven")
+  reviewsReceived     Review[]       @relation("ReviewsReceived")
+  profileImage  String?
+  serviceRequests     ServiceRequest[]
+  serviceOffers       ServiceOffer[]
+}
+
+model Service {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  tags        String[]
+  creditRate  Float?
+  cashRate    Float?
+  providerId  String
+  provider    User     @relation(fields: [providerId], references: [id])
+  createdAt   DateTime @default(now())
+
+  bookings Booking[]
+  category  String?
+}
+
+model Booking {
+  id            String   @id @default(uuid())
+  serviceId     String
+  requesterId   String
+  providerId    String
+  paymentMethod String
+  creditAmount  Float    @default(0)
+  cashAmount    Float    @default(0)
+  status        String   @default("pending")
+  escrowStatus  String   @default("held")
+  createdAt     DateTime @default(now())
+
+  service   Service        @relation(fields: [serviceId], references: [id])
+  requester User           @relation("Requester", fields: [requesterId], references: [id])
+  provider  User           @relation("Provider", fields: [providerId], references: [id])
+  payment   Payment?
+  credits   CreditLedger[]
+  review    Review?
+  scheduledAt   DateTime?
+}
+
+model CreditLedger {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Float
+  type      String
+  bookingId String?
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id])
+  booking Booking? @relation(fields: [bookingId], references: [id])
+}
+
+model Payment {
+  id                String  @id @default(uuid())
+  bookingId         String  @unique
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  amount            Float
+  commission        Float
+  status            String  @default("pending")
+  createdAt         DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
+model Review {
+  id         String   @id @default(uuid())
+  bookingId  String   @unique
+  reviewerId String
+  providerId String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  booking  Booking @relation(fields: [bookingId], references: [id])
+  reviewer User    @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  provider User    @relation("ReviewsReceived", fields: [providerId], references: [id])
+}
+model ServiceRequest {
+  id            String   @id @default(uuid())
+  title         String
+  description   String
+  category      String?
+  tags          String[]
+  budgetCredits Float?
+  budgetCash    Float?
+  requesterId   String
+  requester     User     @relation(fields: [requesterId], references: [id])
+  status        String   @default("open")  // open | fulfilled | cancelled
+  createdAt     DateTime @default(now())
+
+  offers        ServiceOffer[]
+}
+
+model ServiceOffer {
+  id               String         @id @default(uuid())
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id])
+  providerId       String
+  provider         User           @relation(fields: [providerId], references: [id])
+  message          String?
+  proposedCredits  Float?
+  proposedCash     Float?
+  status           String         @default("pending")  // pending | accepted | rejected
+  createdAt        DateTime       @default(now())
+}
