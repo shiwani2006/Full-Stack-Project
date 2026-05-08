@@ -16,7 +16,7 @@ The platform allows users to:
 
 SkillSwap creates a smooth ecosystem for both customers and service providers with an attractive UI and scalable backend architecture.
 
----
+SkillSwap creates a smooth ecosystem for both customers and service providers with an attractive UI and scalable backend architecture.
 
 # 🚀 Features
 
@@ -53,7 +53,7 @@ SkillSwap creates a smooth ecosystem for both customers and service providers wi
 </tr>
 </table>
 
----
+## 🧑‍💼 Provider Features
 
 # 🛠️ Tech Stack
 
@@ -83,7 +83,12 @@ PostgreSQL
 Prisma ORM
 ```
 
----
+```bash
+Node.js
+Express.js
+JWT Authentication
+REST APIs
+```
 
 # 🧠 AI Integration
 
@@ -231,3 +236,6 @@ Provider Dashboard
 
 
 
+<p align="center">
+  Made with 💜 by Team SkillSwap
+</p>
