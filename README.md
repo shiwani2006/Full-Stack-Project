@@ -1,4 +1,4 @@
-#  SkillSwap  
+# ✨ SkillSwap       
 ### Intelligent Digital Marketplace for Service Exchange
 
 ## 🌸 About SkillSwap
@@ -16,7 +16,7 @@ The platform allows users to:
 
 SkillSwap creates a smooth ecosystem for both customers and service providers with an attractive UI and scalable backend architecture.
 
----
+SkillSwap creates a smooth ecosystem for both customers and service providers with an attractive UI and scalable backend architecture.
 
 # 🚀 Features
 
@@ -53,7 +53,7 @@ SkillSwap creates a smooth ecosystem for both customers and service providers wi
 </tr>
 </table>
 
----
+## 🧑‍💼 Provider Features
 
 # 🛠️ Tech Stack
 
@@ -83,7 +83,12 @@ PostgreSQL
 Prisma ORM
 ```
 
----
+```bash
+Node.js
+Express.js
+JWT Authentication
+REST APIs
+```
 
 # 🧠 AI Integration
 
@@ -212,6 +217,23 @@ PORT=5000
 ✅ Digital Wallet  
 ✅ AI Features  
 ✅ Scalable Architecture  
+
+---
+Home Page 
+<img width="1894" height="866" alt="image" src="https://github.com/user-attachments/assets/36bb6dbd-16e6-438f-9515-5140cb062918" />
+
+
+
+User Dashboard
+<img width="1330" height="635" alt="WhatsApp Image 2026-05-06 at 23 25 50" src="https://github.com/user-attachments/assets/8dffbd82-2ba2-408b-bb33-f9f491c46296" />
+
+
+
+Provider Dashboard
+<img width="1347" height="625" alt="WhatsApp Image 2026-05-06 at 23 26 12" src="https://github.com/user-attachments/assets/ef7dd7e2-1328-48ca-b278-7604afcfccea" />
+
+
+
 
 
 <p align="center">
